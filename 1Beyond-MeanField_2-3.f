@@ -145,7 +145,8 @@
 *     Subroutine Read_Parameters
 *    **********************************************                                                  
 
-      SUBROUTINE Read_Parameters(Nfiles,NfilesIn,unit,today,now,path,seed)
+      SUBROUTINE Read_Parameters(Nfiles,NfilesIn,unit,today,now,path,
+     &seed,fixedPoint)
       IMPLICIT NONE
 *     Read parameters and paths from .in file. We do not use "include"
 *     statements, although it would be easier to handle, because
@@ -157,45 +158,65 @@
       CHARACTER*40 path0,path(30)
       CHARACTER*200 pathSummary,pathAdj
       INTEGER*4 today(3), now(3)
-      REAL*8 seed
+      REAL*8 seed,fixedPoint
 *     ...Commons (tragedy of)
       REAL*8 midNa,widthNa,midNp,widthNp
-      REAL*8 midAlpha,widthAlpha,Beta0,widthBeta
-      REAL*8 rhoA,rhoP
-      REAL*8 Gamma0,widthGamma,Delta
-      REAL*8 hA,hP
+      REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
+      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
+      REAL*8 hA,widthHa,hP,widthHp
+      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/ midNa,widthNa,midNp,widthNp,
-     &midAlpha,widthAlpha,Beta0,widthBeta,rhoA,rhoP,
-     &Gamma0,widthGamma,hA,hP,Delta
+      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+     &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
+     &Beta0P,widthBetaP,Beta0A,widthBetaA,
+     &rhoP,widthRhoP,rhoA,widthRhoA,
+     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
+     &hA,widthHa,hP,widthHp,
+     &gA,widthGa,gP,widthGp
       COMMON/Species/ Sa,Sp
        
-      Nfiles=18
-      NfilesIn=8
+      Nfiles=26
+      NfilesIn=12
       NfilesOut=Nfiles-NfilesIn
 c      PRINT *, '>> READING .in file:'
       path0='Beyond-MeanField.in'
 c      PRINT *, '  * Reading files from: ',Path0
       OPEN(UNIT=69,STATUS='OLD',ERR=769,FILE=path0)
-      READ(69,*) midNp          ! Distribution of densities centered .. (zero if reading from file, negative if computed self-consistently)      
+      READ(69,*) midNp          ! Distribution of densities centered at midNp.. (zero if reading from file)      
       READ(69,*) widthNp
       READ(69,*) midNa          ! Distribution of densities centered at this value
       READ(69,*) widthNa        ! with this width
-      READ(69,*) midAlpha       ! Distribution of densities centered ..(zero if reading from file, negative if computed self-consistently)
-      READ(69,*) widthAlpha
-      READ(69,*) Beta0          ! Paramater multiplying a distribution centered around one
-      READ(69,*) widthBeta      ! Width of the distribution
+      READ(69,*) midAlphaP      ! Distribution of densities centered ..(zero if reading from file)
+      READ(69,*) widthAlphaP
+      READ(69,*) midAlphaA      ! Distribution of densities centered ..(zero if reading from file)
+      READ(69,*) widthAlphaA
+      READ(69,*) Beta0P         ! Intraspecific competition for plants
+      READ(69,*) widthBetaP     ! Width of the distribution
+      READ(69,*) Beta0A         ! Intraspecific competition for animals
+      READ(69,*) widthBetaA     ! Width of the distribution
       READ(69,*) rhoP           ! Constant for interspecific competition (plants)
+      READ(69,*) widthRhoP      ! Width of the distribution
       READ(69,*) rhoA           ! Constant for interspecific competition (animals)
-      READ(69,*) Gamma0         ! Paramater multiplying a distribution centered around one ..(fix it to a negative value > -10000 if you want
-      READ(69,*) widthGamma     ! to perform simulations with a mixed strategy, with just competition for plants but mutualism for animals)
-                                ! The strength of the mutualistic interactions for the latter will be the absolute value of this negative 
-                                ! number. If you want to read from a file, fix it to a very negative value (< -10000)
-      READ(69,*) hP             ! handling time for plants
+      READ(69,*) widthRhoA      ! Width of the distribution
+      READ(69,*) Gamma0P         ! Coupling interactions with plants in rows and animals in columns
+      READ(69,*) widthGammaP
+      READ(69,*) Gamma0A        ! Coupling interactions with plants in rows and animals in columns
+      READ(69,*) widthGammaA      
+      READ(69,*) hP             ! handling time for plants with respect to animals abundances
+      READ(69,*) widthHp        ! Width of the distribution
       READ(69,*) hA             ! handling time for animals
+      READ(69,*) widthHa        ! Width of the distribution
+      READ(69,*) gP             ! handling time for plants with respect to plants abundances
+      READ(69,*) widthGp        ! Width of the distribution
+      READ(69,*) gA             ! handling time for animals
+      READ(69,*) widthGa        ! Width of the distribution
       READ(69,*) Sp             ! Number of species of plants
       READ(69,*) Sa             ! of animals
       READ(69,*) Delta          ! Amplitude of the growth rates fluctuations
+      READ(69,*) fixedPoint     ! Parameter controlling if alphas should be estimated at a fixed point, will override any value given to alpha
       path(1)='plantsIn.dat'        
       path(2)='animalsIn.dat'
       path(3)='betaInP.dat'
@@ -204,22 +225,30 @@ c      PRINT *, '  * Reading files from: ',Path0
       path(6)='gammaInA.dat'
       path(7)='alphaInP.dat'
       path(8)='alphaInA.dat'
-      path(9)='plantsOut-Final.out'        
-      path(10)='animalsOut-Final.out'
-      path(11)='betaOutP.out'
-      path(12)='betaOutA.out'
-      path(13)='gammaOutP.out'
-      path(14)='gammaOutA.out'
-      path(15)='alphaOutP.out'
-      path(16)='alphaOutA.out'
-      path(17)='plantsOut-Paths.out'        
-      path(18)='animalsOut-Paths.out'
+      path(9)='hhandlingInP.dat' ! Four new input  files
+      path(10)='hhandlingInA.dat'
+      path(11)='ghandlingInP.dat'
+      path(12)='ghandlingInA.dat'
+      path(13)='plantsOut-Final.out'        
+      path(14)='animalsOut-Final.out'
+      path(15)='betaOutP.out'
+      path(16)='betaOutA.out'
+      path(17)='gammaOutP.out'
+      path(18)='gammaOutA.out'
+      path(19)='alphaOutP.out'
+      path(20)='alphaOutA.out'
+      path(21)='hhandlingOutP.dat' ! Four new output  files, I leave the output files for paths the last ones
+      path(22)='hhandlingOutA.dat'
+      path(23)='ghandlingOutP.dat'
+      path(24)='ghandlingOutA.dat'
+      path(25)='plantsOut-Paths.out'        
+      path(26)='animalsOut-Paths.out'
       DO i=1,NfilesIn
          unit(i)=20+i
       ENDDO
       DO i=1,NfilesOut !2 ! NfilesOut ! We just need to open two files
          tmp=NfilesIn+i
-         unit(tmp)=30+i
+         unit(tmp)=50+i
          OPEN(UNIT=unit(tmp),STATUS='NEW',ERR=771,FILE=path(tmp))
 c         unit(Nfiles+1-i)=40+i ! I use this line and the following to print the integration paths (I print four files in this way), comment otherwise
 c         OPEN(UNIT=unit(Nfiles+1-i),STATUS='NEW',ERR=771,FILE=path(Nfiles+1-i))
@@ -230,12 +259,12 @@ c      PRINT *, '  * The path for the adjacency matrix is: ',pathAdj
       READ(69,'(a)') pathSummary
 c      PRINT *, '  * The path for the output summary is: ',pathSummary
       READ(69,*) seed ! read a random number seed from the perl shuttle
-      unitTmp=51
+      unitTmp=71
       unit(Nfiles+1)=unitTmp
       Z=iTRIM(pathAdj)
       ZZ=iADJUSTL(pathAdj)
       OPEN(UNIT=unitTmp,STATUS='OLD',ERR=772,FILE=pathAdj(ZZ:Z)) ! Additional files     
-      unitTmp=61
+      unitTmp=81
       unit(Nfiles+2)=unitTmp
       Z=iTRIM(pathSummary)
       ZZ=iADJUSTL(pathSummary)
