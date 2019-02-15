@@ -67,17 +67,24 @@
       INTEGER unit(30),Nfiles,NfilesIn
       INTEGER sizeA,sizeP,sizeT
       CHARACTER*40 path(30)
-      REAL*8 seed
-*     ...Commons (tragedy of)
+      REAL*8 seed,fixedPoint
+*     ...COMMONS
       REAL*8 midNa,widthNa,midNp,widthNp
-      REAL*8 midAlpha,widthAlpha,Beta0,widthBeta
-      REAL*8 rhoA,rhoP
-      REAL*8 Gamma0,widthGamma,Delta
-      REAL*8 hA,hP
+      REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
+      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
+      REAL*8 hA,widthHa,hP,widthHp
+      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/ midNa,widthNa,midNp,widthNp,
-     &midAlpha,widthAlpha,Beta0,widthBeta,rhoA,rhoP,
-     &Gamma0,widthGamma,hA,hP,Delta
+      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+     &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
+     &Beta0P,widthBetaP,Beta0A,widthBetaA,
+     &rhoP,widthRhoP,rhoA,widthRhoA,
+     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
+     &hA,widthHa,hP,widthHp,
+     &gA,widthGa,gP,widthGp
       COMMON/Species/ Sa,Sp
 
       PRINT *, ' ' 
@@ -86,11 +93,13 @@
       PRINT *,'*******************************************'
       PRINT *, ' ' 
 
-      call Read_Parameters(Nfiles,NfilesIn,unit,today,now,path,seed)
+      call Read_Parameters(Nfiles,NfilesIn,unit,today,now,path,
+     &seed,fixedPoint)
       sizeA=Sa                  ! Attempt to define dynamically the matrices
       sizeP=Sp
       sizeT=Sa+Sp
-      call Pseudo_Main(path,Nfiles,NfilesIn,unit,today,now,seed,sizeA,sizeP,sizeT)
+      call Pseudo_Main(path,Nfiles,NfilesIn,unit,today,now,seed,
+     &fixedPoint,sizeA,sizeP,sizeT)
       call Normal_Exit()
       END
 
@@ -104,13 +113,14 @@
 *    **********************************************                                                  
 
 
-      SUBROUTINE Pseudo_Main(path,Nfiles,NfilesIn,unit,today,now,seed,sizeA,sizeP,sizeT)
+      SUBROUTINE Pseudo_Main(path,Nfiles,NfilesIn,unit,today,now,
+     &seed,fixedPoint,sizeA,sizeP,sizeT)
       IMPLICIT NONE
       CHARACTER*40 path(30)
       INTEGER sizeA,sizeP,sizeT
       INTEGER unit(30),Nfiles,NfilesIn
       INTEGER*4 today(3), now(3)
-      REAL*8 seed
+      REAL*8 seed,fixedPoint
 *     This subroutine is just a trick to define dynamically
 *     the matrix sizes, as it is not possible to do it in the main program
 *     within the static paradigm of Fortran 77
@@ -126,7 +136,7 @@
       REAL*8 hhA(sizeA),hhP(sizeP)
       REAL*8 AvA,AvP,VarA,VarP
 
-      call Read_Generate_Inputs(path,Nfiles,NfilesIn,unit,today,now,seed,
+      call Read_Generate_Inputs(path,Nfiles,NfilesIn,unit,today,now,seed,fixedPoint,
      &sizeA,sizeP,sizeT,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP
      &,degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
      &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,seedout,AvA,AvP,VarA,VarP)
@@ -298,14 +308,21 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
       INTEGER*4 today(3), now(3)
 *     ...Commons
       REAL*8 midNa,widthNa,midNp,widthNp
-      REAL*8 midAlpha,widthAlpha,Beta0,widthBeta
-      REAL*8 rhoA,rhoP
-      REAL*8 Gamma0,widthGamma,Delta
-      REAL*8 hA,hP
+      REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
+      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
+      REAL*8 hA,widthHa,hP,widthHp
+      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/ midNa,widthNa,midNp,widthNp,
-     &midAlpha,widthAlpha,Beta0,widthBeta,rhoA,rhoP,
-     &Gamma0,widthGamma,hA,hP,Delta
+      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+     &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
+     &Beta0P,widthBetaP,Beta0A,widthBetaA,
+     &rhoP,widthRhoP,rhoA,widthRhoA,
+     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
+     &hA,widthHa,hP,widthHp,
+     &gA,widthGa,gP,widthGp
       COMMON/Species/ Sa,Sp
  
       call When(Today,Now)      ! Compute the date for the file header
@@ -388,15 +405,22 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
       REAL*8 ShannonA,ShannonP
       REAL*8 AvDegreeP,AvDegreeA,VarDegreeP,VarDegreeA
 *     ...Commons
-      REAL*8 midNa,widthNa,midNp,widthNp
-      REAL*8 midAlpha,widthAlpha,Beta0,widthBeta
-      REAL*8 rhoA,rhoP
-      REAL*8 Gamma0,widthGamma,Delta
-      REAL*8 hA,hP
+       REAL*8 midNa,widthNa,midNp,widthNp
+      REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
+      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
+      REAL*8 hA,widthHa,hP,widthHp
+      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/ midNa,widthNa,midNp,widthNp,
-     &midAlpha,widthAlpha,Beta0,widthBeta,rhoA,rhoP,
-     &Gamma0,widthGamma,hA,hP,Delta
+      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+     &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
+     &Beta0P,widthBetaP,Beta0A,widthBetaA,
+     &rhoP,widthRhoP,rhoA,widthRhoA,
+     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
+     &hA,widthHa,hP,widthHp,
+     &gA,widthGa,gP,widthGp
       COMMON/Species/ Sa,Sp
 
       BiomassP=0.0d0

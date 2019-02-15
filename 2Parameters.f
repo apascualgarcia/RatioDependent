@@ -3,7 +3,7 @@
 *     SUBROUTINE Read_Generate_Inputs
 *     *********************************************                                                  
       
-      SUBROUTINE Read_Generate_Inputs(path,Nfiles,NfilesIn,unit,today,now,seed,
+      SUBROUTINE Read_Generate_Inputs(path,Nfiles,NfilesIn,unit,today,now,seed,fixedPoint,
      &sizeA,sizeP,sizeT,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP
      &,degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
      &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,seedout,AvA,AvP,VarA,VarP)
@@ -12,7 +12,7 @@
       INTEGER unit(30),Nfiles,NfilesIn
       INTEGER*4 today(3), now(3)
       CHARACTER*40 path(30)
-      REAL*8 seed
+      REAL*8 seed,fixedPoint
 *     This subroutine either reads or generates random parameters, 
 *     according to the input metaparameters defined by the user. Parameters
 *     are readed if the metaparameter controling the correspondent distribution
@@ -44,14 +44,21 @@
       REAL*8 AvA,AvP,VarA,VarP
 *     ...Commons 
       REAL*8 midNa,widthNa,midNp,widthNp
-      REAL*8 midAlpha,widthAlpha,Beta0,widthBeta
-      REAL*8 rhoA,rhoP
-      REAL*8 Gamma0,widthGamma,Delta
-      REAL*8 hA,hP
+      REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
+      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
+      REAL*8 hA,widthHa,hP,widthHp
+      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/ midNa,widthNa,midNp,widthNp,
-     &midAlpha,widthAlpha,Beta0,widthBeta,rhoA,rhoP,
-     &Gamma0,widthGamma,hA,hP,Delta
+      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+     &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
+     &Beta0P,widthBetaP,Beta0A,widthBetaA,
+     &rhoP,widthRhoP,rhoA,widthRhoA,
+     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
+     &hA,widthHa,hP,widthHp,
+     &gA,widthGa,gP,widthGp
       COMMON/Species/ Sa,Sp
 
 *     --- Prepare random numbers
@@ -428,14 +435,21 @@ c      PRINT *, '<< Parameters generated/readed!'
       REAL*8 AvA,AvP,VarA,VarP
 *     ...Commons
       REAL*8 midNa,widthNa,midNp,widthNp
-      REAL*8 midAlpha,widthAlpha,Beta0,widthBeta
-      REAL*8 rhoA,rhoP
-      REAL*8 Gamma0,widthGamma,Delta
-      REAL*8 hA,hP
+      REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
+      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
+      REAL*8 hA,widthHa,hP,widthHp
+      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/ midNa,widthNa,midNp,widthNp,
-     &midAlpha,widthAlpha,Beta0,widthBeta,rhoA,rhoP,
-     &Gamma0,widthGamma,hA,hP,Delta
+      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+     &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
+     &Beta0P,widthBetaP,Beta0A,widthBetaA,
+     &rhoP,widthRhoP,rhoA,widthRhoA,
+     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
+     &hA,widthHa,hP,widthHp,
+     &gA,widthGa,gP,widthGp
       COMMON/Species/ Sa,Sp
 
       IF(Gamma0.ne.0)THEN

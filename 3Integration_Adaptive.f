@@ -398,14 +398,21 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
       REAL*8 f(sizeT),Comp,Mut
 *     ...Commons
       REAL*8 midNa,widthNa,midNp,widthNp
-      REAL*8 midAlpha,widthAlpha,Beta0,widthBeta
-      REAL*8 rhoA,rhoP
-      REAL*8 Gamma0,widthGamma,Delta
-      REAL*8 hA,hP
+      REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
+      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
+      REAL*8 hA,widthHa,hP,widthHp
+      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/ midNa,widthNa,midNp,widthNp,
-     &midAlpha,widthAlpha,Beta0,widthBeta,rhoA,rhoP,
-     &Gamma0,widthGamma,hA,hP,Delta
+      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+     &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
+     &Beta0P,widthBetaP,Beta0A,widthBetaA,
+     &rhoP,widthRhoP,rhoA,widthRhoA,
+     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
+     &hA,widthHa,hP,widthHp,
+     &gA,widthGa,gP,widthGp
       COMMON/Species/ Sa,Sp
 
       IF(Gamma0.gt.0)THEN
