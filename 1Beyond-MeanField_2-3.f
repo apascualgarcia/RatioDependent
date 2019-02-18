@@ -68,23 +68,27 @@
       INTEGER sizeA,sizeP,sizeT
       CHARACTER*40 path(30)
       REAL*8 seed,fixedPoint
+      INTEGER readNp,readNa,readAlphaP,readAlphaA
+      INTEGER readBetaP,readBetaA
+      INTEGER readGammaP,readGammaA
+      INTEGER readHp,readHa,readGp,readGa
 *     ...COMMONS
-      REAL*8 midNa,widthNa,midNp,widthNp
+      REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
-      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
       REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
-      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
-      REAL*8 hA,widthHa,hP,widthHp
-      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
+      REAL*8 midHp,widthHp,midHa,widthHa
+      REAL*8 midGa,widthGa,midGp,widthGp
       REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+      COMMON/Parameters/midNp,widthNp,midNa,widthNa,
      &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
-     &Beta0P,widthBetaP,Beta0A,widthBetaA,
-     &rhoP,widthRhoP,rhoA,widthRhoA,
-     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
-     &hA,widthHa,hP,widthHp,
-     &gA,widthGa,gP,widthGp
+     &midBetaP,widthBetaP,midBetaA,widthBetaA,
+     &midRhoP,widthRhoP,midRhoA,widthRhoA,
+     &midGammaP,widthGammaP,midGammaA,widthGammaA,
+     &midHa,widthHa,midHp,widthHp,
+     &midGa,widthGa,midGp,widthGp
       COMMON/Species/ Sa,Sp
 
       PRINT *, ' ' 
@@ -94,12 +98,16 @@
       PRINT *, ' ' 
 
       call Read_Parameters(Nfiles,NfilesIn,unit,today,now,path,
-     &seed,fixedPoint)
+     &seed,fixedPoint,readNp,readNa,readAlphaP,readAlphaA,
+     &readBetaP,readBetaA,readGammaP,readGammaA,
+     &readHp,readHa,readGp,readGa)
       sizeA=Sa                  ! Attempt to define dynamically the matrices
       sizeP=Sp
       sizeT=Sa+Sp
       call Pseudo_Main(path,Nfiles,NfilesIn,unit,today,now,seed,
-     &fixedPoint,sizeA,sizeP,sizeT)
+     &fixedPoint,sizeA,sizeP,sizeT,readNp,readNa,readAlphaP,readAlphaA,
+     &readBetaP,readBetaA,readGammaP,readGammaA,
+     &readHp,readHa,readGp,readGa)
       call Normal_Exit()
       END
 
@@ -114,13 +122,19 @@
 
 
       SUBROUTINE Pseudo_Main(path,Nfiles,NfilesIn,unit,today,now,
-     &seed,fixedPoint,sizeA,sizeP,sizeT)
+     &seed,fixedPoint,sizeA,sizeP,sizeT,readNp,readNa,readAlphaP,readAlphaA,
+     &readBetaP,readBetaA,readGammaP,readGammaA,
+     &readHp,readHa,readGp,readGa)
       IMPLICIT NONE
       CHARACTER*40 path(30)
       INTEGER sizeA,sizeP,sizeT
       INTEGER unit(30),Nfiles,NfilesIn
       INTEGER*4 today(3), now(3)
       REAL*8 seed,fixedPoint
+      INTEGER readNp,readNa,readAlphaP,readAlphaA
+      INTEGER readBetaP,readBetaA
+      INTEGER readGammaP,readGammaA
+      INTEGER readHp,readHa,readGp,readGa
 *     This subroutine is just a trick to define dynamically
 *     the matrix sizes, as it is not possible to do it in the main program
 *     within the static paradigm of Fortran 77
@@ -137,8 +151,10 @@
       REAL*8 AvA,AvP,VarA,VarP
 
       call Read_Generate_Inputs(path,Nfiles,NfilesIn,unit,today,now,seed,fixedPoint,
-     &sizeA,sizeP,sizeT,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP
-     &,degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
+     &sizeA,sizeP,sizeT,readNp,readNa,readAlphaP,readAlphaA,
+     &readBetaP,readBetaA,readGammaP,readGammaA,
+     &readHp,readHa,readGp,readGa,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,
+     &degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
      &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,seedout,AvA,AvP,VarA,VarP)
       call Integration(Nfiles,unit,sizeA,sizeP,sizeT,BetaA,BetaP,
      &GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,hhA,hhP,Dissipation,AvDissipation,
@@ -156,7 +172,9 @@
 *    **********************************************                                                  
 
       SUBROUTINE Read_Parameters(Nfiles,NfilesIn,unit,today,now,path,
-     &seed,fixedPoint)
+     &seed,fixedPoint,readNp,readNa,readAlphaP,readAlphaA,
+     &readBetaP,readBetaA,readGammaP,readGammaA,
+     &readHp,readHa,readGp,readGa)
       IMPLICIT NONE
 *     Read parameters and paths from .in file. We do not use "include"
 *     statements, although it would be easier to handle, because
@@ -166,62 +184,77 @@
       INTEGER iADJUSTL, iTRIM
       INTEGER Nfiles,NfilesIn,NfilesOut,unit(30),unitTmp
       CHARACTER*40 path0,path(30)
-      CHARACTER*200 pathSummary,pathAdj
+      CHARACTER*200 pathSummary
       INTEGER*4 today(3), now(3)
       REAL*8 seed,fixedPoint
+      INTEGER readNp,readNa,readAlphaP,readAlphaA
+      INTEGER readBetaP,readBetaA
+      INTEGER readGammaP,readGammaA
+      INTEGER readHp,readHa,readGp,readGa
 *     ...Commons (tragedy of)
-      REAL*8 midNa,widthNa,midNp,widthNp
+      REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
-      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
       REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
-      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
-      REAL*8 hA,widthHa,hP,widthHp
-      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
+      REAL*8 midHp,widthHp,midHa,widthHa
+      REAL*8 midGa,widthGa,midGp,widthGp
       REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+      COMMON/Parameters/midNp,widthNp,midNa,widthNa,
      &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
-     &Beta0P,widthBetaP,Beta0A,widthBetaA,
-     &rhoP,widthRhoP,rhoA,widthRhoA,
-     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
-     &hA,widthHa,hP,widthHp,
-     &gA,widthGa,gP,widthGp
+     &midBetaP,widthBetaP,midBetaA,widthBetaA,
+     &midRhoP,widthRhoP,midRhoA,widthRhoA,
+     &midGammaP,widthGammaP,midGammaA,widthGammaA,
+     &midHa,widthHa,midHp,widthHp,
+     &midGa,widthGa,midGp,widthGp
       COMMON/Species/ Sa,Sp
        
       Nfiles=26
       NfilesIn=12
       NfilesOut=Nfiles-NfilesIn
-c      PRINT *, '>> READING .in file:'
       path0='Beyond-MeanField.in'
 c      PRINT *, '  * Reading files from: ',Path0
       OPEN(UNIT=69,STATUS='OLD',ERR=769,FILE=path0)
-      READ(69,*) midNp          ! Distribution of densities centered at midNp.. (zero if reading from file)      
+      READ(69,*) readNp         ! One if you read Np from file, 0 if will be generated internally
+      READ(69,*) midNp          ! Distribution of densities centered at midNp.      
       READ(69,*) widthNp
+      READ(69,*) readNa         ! One if you read Np from file, 0 if will be generated internally
       READ(69,*) midNa          ! Distribution of densities centered at this value
       READ(69,*) widthNa        ! with this width
+      READ(69,*) readAlphaP         ! One if you read from file, 0 if will be generated internally            
       READ(69,*) midAlphaP      ! Distribution of densities centered ..(zero if reading from file)
       READ(69,*) widthAlphaP
+      READ(69,*) readAlphaA     ! One if you read from file, 0 if will be generated internally            
       READ(69,*) midAlphaA      ! Distribution of densities centered ..(zero if reading from file)
       READ(69,*) widthAlphaA
-      READ(69,*) Beta0P         ! Intraspecific competition for plants
+      READ(69,*) readBetaP      ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) midBetaP         ! Intraspecific competition for plants
       READ(69,*) widthBetaP     ! Width of the distribution
-      READ(69,*) Beta0A         ! Intraspecific competition for animals
+      READ(69,*) readBetaA      ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) midBetaA         ! Intraspecific competition for animals
       READ(69,*) widthBetaA     ! Width of the distribution
-      READ(69,*) rhoP           ! Constant for interspecific competition (plants)
+      READ(69,*) midRhoP           ! Constant for interspecific competition (plants)
       READ(69,*) widthRhoP      ! Width of the distribution
-      READ(69,*) rhoA           ! Constant for interspecific competition (animals)
+      READ(69,*) midRhoA           ! Constant for interspecific competition (animals)
       READ(69,*) widthRhoA      ! Width of the distribution
-      READ(69,*) Gamma0P         ! Coupling interactions with plants in rows and animals in columns
+      READ(69,*) readGammaP     ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) midGammaP        ! Coupling interactions with plants in rows and animals in columns
       READ(69,*) widthGammaP
-      READ(69,*) Gamma0A        ! Coupling interactions with plants in rows and animals in columns
-      READ(69,*) widthGammaA      
-      READ(69,*) hP             ! handling time for plants with respect to animals abundances
+      READ(69,*) readGammaA     ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) midGammaA        ! Coupling interactions with plants in rows and animals in columns
+      READ(69,*) widthGammaA
+      READ(69,*) readHp         ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) midHp             ! handling time for plants with respect to animals abundances
       READ(69,*) widthHp        ! Width of the distribution
-      READ(69,*) hA             ! handling time for animals
+      READ(69,*) readHa         ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) midHa             ! handling time for animals
       READ(69,*) widthHa        ! Width of the distribution
-      READ(69,*) gP             ! handling time for plants with respect to plants abundances
+      READ(69,*) readGp         ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) midGp             ! handling time for plants with respect to plants abundances
       READ(69,*) widthGp        ! Width of the distribution
-      READ(69,*) gA             ! handling time for animals
+      READ(69,*) readGa         ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) midGa             ! handling time for animals
       READ(69,*) widthGa        ! Width of the distribution
       READ(69,*) Sp             ! Number of species of plants
       READ(69,*) Sa             ! of animals
@@ -264,31 +297,24 @@ c         unit(Nfiles+1-i)=40+i ! I use this line and the following to print the
 c         OPEN(UNIT=unit(Nfiles+1-i),STATUS='NEW',ERR=771,FILE=path(Nfiles+1-i))
 c         PRINT *, '  * Unit ',unit(NfilesIn+i),' corresponds to ',path(NfilesIn+i)
       ENDDO
-      READ(69,'(a)') pathAdj
-c      PRINT *, '  * The path for the adjacency matrix is: ',pathAdj
       READ(69,'(a)') pathSummary
 c      PRINT *, '  * The path for the output summary is: ',pathSummary
       READ(69,*) seed ! read a random number seed from the perl shuttle
-      unitTmp=71
-      unit(Nfiles+1)=unitTmp
-      Z=iTRIM(pathAdj)
-      ZZ=iADJUSTL(pathAdj)
-      OPEN(UNIT=unitTmp,STATUS='OLD',ERR=772,FILE=pathAdj(ZZ:Z)) ! Additional files     
       unitTmp=81
       unit(Nfiles+2)=unitTmp
       Z=iTRIM(pathSummary)
       ZZ=iADJUSTL(pathSummary)
       OPEN(UNIT=unitTmp,STATUS='NEW',ERR=773,FILE=pathSummary(ZZ:Z))
-      call Header(pathAdj,pathSummary,unitTmp,today,now) ! Write the header for the output files      
+      call Header(pathSummary,unitTmp,today,now,
+     &readNp,readNa,readAlphaP,readAlphaA,
+     &readBetaP,readBetaA,readGammaP,readGammaA,
+     &readHp,readHa,readGp,readGa) ! Write the header for the output files      
       RETURN
  769  CONTINUE
       PRINT *,'  * * Err 769: Problems opening file .in: ',path0
       call Warning()
  771  CONTINUE
       PRINT *,'  * *  Err 771: Problems opening unit: ',unit(NfilesIn+i),' >> ',path(i)
-      call Warning()
- 772  CONTINUE
-      PRINT *,'  * *  Err 772: Problems opening unit: ',unitTmp,' >> ',pathAdj
       call Warning()
  773  CONTINUE
       PRINT *,'  * *  Err 773: Problems opening unit: ',unitTmp,' >> ',pathSummary
@@ -300,50 +326,119 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
 *     Subroutine Header
 *    **********************************************                                                  
 
-      SUBROUTINE Header(pathIn,pathOut,unit,today,now)
+      SUBROUTINE Header(pathOut,unit,today,now,
+     &readNp,readNa,readAlphaP,readAlphaA,
+     &readBetaP,readBetaA,readGammaP,readGammaA,
+     &readHp,readHa,readGp,readGa)
       IMPLICIT NONE
       INTEGER unit
-      CHARACTER*200 pathIn,pathOut
+      CHARACTER*200 pathOut
 *     Writes the output file header.
       INTEGER*4 today(3), now(3)
+      INTEGER readNp,readNa,readAlphaP,readAlphaA
+      INTEGER readBetaP,readBetaA
+      INTEGER readGammaP,readGammaA
+      INTEGER readHp,readHa,readGp,readGa
 *     ...Commons
-      REAL*8 midNa,widthNa,midNp,widthNp
+      REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
-      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
       REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
-      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
-      REAL*8 hA,widthHa,hP,widthHp
-      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
+      REAL*8 midHp,widthHp,midHa,widthHa
+      REAL*8 midGa,widthGa,midGp,widthGp
       REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+      COMMON/Parameters/midNp,widthNp,midNa,widthNa,
      &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
-     &Beta0P,widthBetaP,Beta0A,widthBetaA,
-     &rhoP,widthRhoP,rhoA,widthRhoA,
-     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
-     &hA,widthHa,hP,widthHp,
-     &gA,widthGa,gP,widthGp
+     &midBetaP,widthBetaP,midBetaA,widthBetaA,
+     &midRhoP,widthRhoP,midRhoA,widthRhoA,
+     &midGammaP,widthGammaP,midGammaA,widthGammaA,
+     &midHa,widthHa,midHp,widthHp,
+     &midGa,widthGa,midGp,widthGp
       COMMON/Species/ Sa,Sp
  
       call When(Today,Now)      ! Compute the date for the file header
       WRITE(unit,*) '# Beyond-MeanField.f'
       WRITE(unit,111) Today,Now
-      WRITE(unit,112) '# Observed network:',pathIn
       WRITE(unit,112) '# Summary output: ',pathOut
-      WRITE(unit,*) 'midNp ',midNp ! Distribution of densities centered ..
-      WRITE(unit,*) 'widthNp ',widthNp
-      WRITE(unit,*) 'midNa ',midNa ! Distribution of densities centered at this value
-      WRITE(unit,*) 'widthNa ',widthNa ! with this width
-      WRITE(unit,*) 'midAlpha ', midAlpha ! Distribution of densities centered ..
-      WRITE(unit,*) 'widthAlpha ',widthAlpha
-      WRITE(unit,*) 'Beta0 ', Beta0 ! Paramater multiplying a distribution centered around one
-      WRITE(unit,*) 'widthBeta ', widthBeta ! Width of the distribution
-      WRITE(unit,*) 'rhoP ',rhoP ! Constant for interspecific competition for plants
-      WRITE(unit,*) 'rhoA ',rhoA ! Constant for interspecific competition for animals
-      WRITE(unit,*) 'Gamma0 ',Gamma0 ! Paramater multiplying a distribution centered around one
-      WRITE(unit,*) 'widthGamma ',widthGamma
-      WRITE(unit,*) 'hP ',hP    ! handling time for plants
-      WRITE(unit,*) 'hA ',hA    ! handling time for animals
+
+      IF(readNp .eq. 1)THEN
+         WRITE(unit,*) 'Np was read from file '
+      ELSE
+         WRITE(unit,*) 'midNp ',midNp ! Distribution of densities centered ..
+         WRITE(unit,*) 'widthNp ',widthNp
+      ENDIF
+      IF(readNa .eq. 1)THEN
+         WRITE(unit,*) 'Na was read from file '
+      ELSE
+         WRITE(unit,*) 'midNa ',midNa ! Distribution of densities centered at this value
+         WRITE(unit,*) 'widthNa ',widthNa ! with this width 
+      ENDIF
+      IF(readAlphaP .eq. 1)THEN
+         WRITE(unit,*) 'AlphaP was read from file '
+      ELSE
+         WRITE(unit,*) 'midAlphaP ', midAlphaP ! Distribution of densities centered ..
+         WRITE(unit,*) 'widthAlphaP ',widthAlphaP
+      ENDIF
+      IF(readAlphaA .eq. 1)THEN
+         WRITE(unit,*) 'AlphaA was read from file '
+      ELSE
+         WRITE(unit,*) 'midAlphaA ', midAlphaA ! Distribution of densities centered ..
+         WRITE(unit,*) 'widthAlphaA ',widthAlpha
+      ENDIF
+      IF(readBetaP .eq. 1)THEN
+         WRITE(unit,*) 'BetaP and rhoP were read from file '
+      ELSE
+         WRITE(unit,*) 'midBetaP ', midBetaP ! Paramater multiplying a distribution centered around one
+         WRITE(unit,*) 'widthBetaP ', widthBetaP ! Width of the distribution
+         WRITE(unit,*) 'midRhoP ',midRhoP ! Constant for interspecific competition for plants
+         WRITE(unit,*) 'widthRhoP ',widthRhoP ! Constant for interspecific competition for plants
+      ENDIF
+      IF(readBetaA .eq. 1)THEN
+         WRITE(unit,*) 'BetaA and rhoA were read from file '
+      ELSE
+         WRITE(unit,*) 'midBetaA ', midBetaA ! Parameter multiplying a distribution centered around one
+         WRITE(unit,*) 'widthBetaA ', widthBetaA ! Width of the distribution
+         WRITE(unit,*) 'midRhoA ',midRhoA ! Constant for interspecific competition for plants
+         WRITE(unit,*) 'widthRhoA ',widthRhoA ! Constant for interspecific competition for plants
+      ENDIF
+      IF(readGammaP .eq. 1)THEN
+         WRITE(unit,*) 'GammaP was read from file '
+      ELSE
+         WRITE(unit,*) 'midGammaP ',midGammaP ! Paramater multiplying a distribution centered around one
+         WRITE(unit,*) 'widthGammaP ',widthGammaP
+      ENDIF
+      IF(readGammaA .eq. 1)THEN
+         WRITE(unit,*) 'GammaA was read from file '
+      ELSE
+         WRITE(unit,*) 'midGammaA ',midGammaA ! Paramater multiplying a distribution centered around one
+         WRITE(unit,*) 'widthGammaA ',widthGammaA    
+      ENDIF
+      IF(readHp .eq. 1)THEN
+         WRITE(unit,*) 'hP was read from file '
+      ELSE
+         WRITE(unit,*) 'midHp ',midHp ! handling time for plants
+         WRITE(unit,*) 'widthHp ',widthHp ! handling time for plant
+      ENDIF
+      IF(readHa .eq. 1)THEN
+         WRITE(unit,*) 'hA was read from file '
+      ELSE
+         WRITE(unit,*) 'midHa ',midHa ! handling time for plants
+         WRITE(unit,*) 'widthHa ',widthHa ! handling time for plants 
+      ENDIF
+      IF(readGp .eq. 1)THEN
+         WRITE(unit,*) 'gP was read from file '
+      ELSE
+         WRITE(unit,*) 'midGp ',midGp ! handling time for plants
+         WRITE(unit,*) 'widthGp ',widthGp ! handling time for plant
+      ENDIF
+      IF(readGa .eq. 1)THEN
+         WRITE(unit,*) 'gA was read from file '
+      ELSE
+         WRITE(unit,*) 'midGa ',midGa ! handling time for plants
+         WRITE(unit,*) 'widthGa ',widthGa ! handling time for plants 
+      ENDIF
       WRITE(unit,*) 'Sp ',Sp    ! of plants
       WRITE(unit,*) 'Sa ',Sa    ! Number of species of animals
       WRITE(unit,*) 'Delta  ',Delta ! Amplitude of the growth rates fluctuations
@@ -405,22 +500,22 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
       REAL*8 ShannonA,ShannonP
       REAL*8 AvDegreeP,AvDegreeA,VarDegreeP,VarDegreeA
 *     ...Commons
-       REAL*8 midNa,widthNa,midNp,widthNp
+      REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
-      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
       REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
-      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
-      REAL*8 hA,widthHa,hP,widthHp
-      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
+      REAL*8 midHp,widthHp,midHa,widthHa
+      REAL*8 midGa,widthGa,midGp,widthGp
       REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+      COMMON/Parameters/midNp,widthNp,midNa,widthNa,
      &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
-     &Beta0P,widthBetaP,Beta0A,widthBetaA,
-     &rhoP,widthRhoP,rhoA,widthRhoA,
-     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
-     &hA,widthHa,hP,widthHp,
-     &gA,widthGa,gP,widthGp
+     &midBetaP,widthBetaP,midBetaA,widthBetaA,
+     &midRhoP,widthRhoP,midRhoA,widthRhoA,
+     &midGammaP,widthGammaP,midGammaA,widthGammaA,
+     &midHa,widthHa,midHp,widthHp,
+     &midGa,widthGa,midGp,widthGp
       COMMON/Species/ Sa,Sp
 
       BiomassP=0.0d0

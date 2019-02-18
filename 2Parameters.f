@@ -4,8 +4,10 @@
 *     *********************************************                                                  
       
       SUBROUTINE Read_Generate_Inputs(path,Nfiles,NfilesIn,unit,today,now,seed,fixedPoint,
-     &sizeA,sizeP,sizeT,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP
-     &,degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
+     &sizeA,sizeP,sizeT,readNp,readNa,readAlphaP,readAlphaA,
+     &readBetaP,readBetaA,readRhoP,readRhoA,readGammaP,readGammaA,
+     &readHp,readHa,readGp,readGa,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,
+     &degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
      &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,seedout,AvA,AvP,VarA,VarP)
       IMPLICIT NONE
       INTEGER sizeA,sizeP,sizeT
@@ -13,9 +15,13 @@
       INTEGER*4 today(3), now(3)
       CHARACTER*40 path(30)
       REAL*8 seed,fixedPoint
+      INTEGER readNp,readNa,readAlphaP,readAlphaA
+      INTEGER readBetaP,readBetaA,readRhoP,readRhoA
+      INTEGER readGammaP,readGammaA
+      INTEGER readHp,readHa,readGp,readGa
 *     This subroutine either reads or generates random parameters, 
 *     according to the input metaparameters defined by the user. Parameters
-*     are readed if the metaparameter controling the correspondent distribution
+*     are read if the metaparameter controling the correspondent distribution
 *     is zero (no distribution should be centered around zero). In the case of alpha, if this parameter
 *     is negative, these parameters will be generated according to
 *     the constrained imposed by all the other parameters (solving eqs. at the fixed point).
@@ -25,7 +31,7 @@
 *     in a separately subroutine
 *     Finally, it computes some topological measures before running the simulation
 *     at the routine topology
-      LOGICAL alive(sizeT),binary
+      LOGICAL alive(sizeT)
       INTEGER i,j,k,tmp,nkill
       REAL*8 scale,rnd,ran2,seedout,c
       INTEGER*8 idum
@@ -34,366 +40,118 @@
       INTEGER excludedP,excludedA,NegAlphaP,NegAlphaA
       REAL Connect,single
       REAL*8 BetaA(sizeA,sizeA),BetaP(sizeP,sizeP)
-      REAL*8 bup,blow,rhomaxA,rhomaxP
       REAL*8 GammaA(sizeA,sizeP),GammaP(sizeP,sizeA),gammaMin
-      REAL*8 Gamma0P,Gamma0A
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
-      REAL*8 Np(sizeP),Na(sizeA),u(sizeT),Nrate,InvNrate
-      REAL*8 hhA(sizeA),hhP(sizeP),hmax,hmaxA,hmaxP
+      REAL*8 Np(sizeP),Na(sizeA),u(sizeT)
+      REAL*8 hhA(sizeA),hhP(sizeP)
       REAL*8 NestA,NestP,NestT
       REAL*8 AvA,AvP,VarA,VarP
 *     ...Commons 
-      REAL*8 midNa,widthNa,midNp,widthNp
+      REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
-      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
       REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
-      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
-      REAL*8 hA,widthHa,hP,widthHp
-      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
+      REAL*8 midHp,widthHp,midHa,widthHa
+      REAL*8 midGa,widthGa,midGp,widthGp
       REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+      COMMON/Parameters/midNp,widthNp,midNa,widthNa,
      &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
-     &Beta0P,widthBetaP,Beta0A,widthBetaA,
-     &rhoP,widthRhoP,rhoA,widthRhoA,
-     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
-     &hA,widthHa,hP,widthHp,
-     &gA,widthGa,gP,widthGp
+     &midBetaP,widthBetaP,midBetaA,widthBetaA,
+     &midRhoP,widthRhoP,midRhoA,widthRhoA,
+     &midGammaP,widthGammaP,midGammaA,widthGammaA,
+     &midHa,widthHa,midHp,widthHp,
+     &midGa,widthGa,midGp,widthGp
       COMMON/Species/ Sa,Sp
 
-*     --- Prepare random numbers
+*     --- Prepare random numbers and initialize the alive vector
 
 c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+Hours)          
       seed=seed*1e8
       seedout=seed
       idum=-INT(seed)           ! We generate just one seed for all randomizations, as the total number of realizations is small
-      !PRINT *,idum,seed,' idum, seed' ! Debug
-
-*     --- Compute topological measures
-
-      binary=.true. 
-      DO i=1,Sp  
-         alive(i)=.true.
-         READ(unit(Nfiles+1),*) (AdjP(i,k), k=1,Sa) ! Read the adjacency matrix in implicit for
-         DO k=1,Sa              ! Compute degrees and transpose the matrix
-            IF(i.eq.1)THEN
-               alive(Sp+k)=.true.
-            ENDIF
-            AdjA(k,i)=AdjP(i,k)
-            IF(binary.eqv..true.)THEN ! Check if your matrix is binary
-               IF((AdjA(k,i).ne.0).or.(AdjA(k,i).ne.1)) binary=.false.
-            ENDIF
-         ENDDO
-      ENDDO
-      call Topology(sizeA,sizeP,sizeT,AdjP,AdjA,alive,degreeP,degreeA,NestP,NestA,
-     &NestT,Connect,single,excludedP,excludedA) ! Compute some topological measures
-
-*     --- Generate parameters to compute self consistent handling times or rho
-
-      c=0.75d0                  ! Scales how far we set h or rho from hmax and rhomax
-      scale=widthBeta/2
-      bup=Beta0*(1+scale)
-      blow=Beta0*(1-scale)
-      gammaMin=0.01             ! BE AWARE of this choice (Obligatory mutualism)
-      hmax=100d0
-      hmaxA=1.0d0/(bup*((Sa-1)*rhoA+1)) ! Note that rho cannot be negative here
-      hmaxP=1.0d0/(bup*((Sp-1)*rhoP+1))   
-      hmaxA=c*hmaxA             ! First solution (when h must be below hmax)
-      hmaxP=c*hmaxP
-      rhomaxP=1.0d0/(Sp-1)*(1.0d0/(hP*bup)-1) ! Note that h cannot be negative here
-      rhomaxA=1.0d0/(Sa-1)*(1.0d0/(hA*bup)-1)
-      rhomaxP=c*rhomaxP
-      rhomaxA=c*rhomaxA
+!PRINT *,idum,seed,' idum, seed' ! Debug
       
-      DO i=1,Sp
-         IF(hP.gt.0)THEN
-            hhP(i)=hP
-         ELSE
-            hhP(i)=hmaxP        !-InvNrate/(gammaMin*degreeP(i))
-            !PRINT *,i,hhP(i),degreeP(i),' hP debug'
-         ENDIF
-      ENDDO
-      DO i=1,Sa
-         IF(hA.gt.0)THEN
-            hhA(i)=hA
-         ELSE
-            hhA(i)=hmaxA        !-InvNrate/(gammaMin*degreeA(i))
-            IF(hhA(i).lt.hmax) hmax=hhA(i)
-            !PRINT *,i,hhA(i),degreeA(i),' hA debug'
-         ENDIF
+      DO i=1,Sp+Sa         
+         alive(i)=.true.
       ENDDO
 
-      !IF(hP.le.0) hP=hmaxP               ! For Nrate and print it as output
-      !IF(hA.le.0) hA=hmaxA               ! Print it as output and use it for Nrate
-      !IF(rhoA.le.0) rhoA=rhomaxA
-      !IF(rhoP.le.0) rhoP=rhomaxP       
+*     --- Read/generate vectorial tmp.
+      tmp=1
+      call ReadGenerateVec(unit,path,idum,Sp,tmp,readNp,midNp,widthNp,Np) ! Plant species abundances
+      tmp=2
+      call ReadGenerateVec(unit,path,idum,Sa,tmp,readNa,midNa,widthNa,Na) ! Animal species abundances
+      tmp=9
+      call ReadGenerateVec(unit,path,idum,Sp,tmp,readHp,midHp,widthHp,hhP) ! handling times opposite pool abundances
+      tmp=10
+      call ReadGenerateVec(unit,path,idum,Sa,tmp,readHa,midHa,widthHa,hhA)
+      tmp=11
+      call ReadGenerateVec(unit,path,idum,Sp,tmp,readGp,midGp,widthGp,ggP) ! handling times same pool abundances
+      tmp=12
+      call ReadGenerateVec(unit,path,idum,Sa,tmp,readGa,midGa,widthNGa,ggA)
 
-*     --- Compute the rate of biomasses needed for an obligatory scenario
-            
-      IF(midNp.lt.0)THEN        ! We want abundances consistent with h
-         hA=hmaxA
-         Nrate=(bup*(1+(Sa-1)*rhoA))**2 ! A conservative increase against a realization of biomasses such that Np/Na=Np/Na*(1-0.15)/(1+0.15)
-     &        /(gammaMin*blow*(1-hA*(bup*(1+(Sa-1)*rhoA))))**2 ! In the denominator, blow would be actually clow, the mutualistic parameter
-         Nrate=Nrate*(1.0d0+0.8d0)
-         midNp=Nrate
-         midNa=1.0d0
-      ENDIF
-*     --- Read/generate values for the populations.
-      !PRINT*, '>> DEBUG: MidNp',midNp, ' path(1): ',path(1),' NfilesIn ',NfilesIn
-      IF(midNp.eq.0)THEN
-         tmp=1
-         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
-         scale=widthNp/2
-         DO i=1,Sp
-            rnd=ran2(idum)
-            READ(unit(tmp),*) Np(i)
-            !Np(i)=100*Np(i) ! Additional abundances parameter scaling
-            Np(i)=Np(i)*(1+rnd*scale)
-            midNp=midNp+Np(i)
-         ENDDO
-         midNp=midNp/float(Sp) ! We will need this value to normalize Beta0 and gamma
-      ELSE
-         scale=widthNp/2
-         DO i=1,Sp
-            rnd=ran2(idum)
-            Np(i)=midNp*(1+rnd*scale)
-             !print *,i,Np(i),Nrate,midNp,scale,' i, Np(i), Nrate, debug'
-         ENDDO
-      ENDIF  
- 
-      IF(midNa.eq.0)THEN
-         tmp=2
-         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
-         scale=widthNa/2    ! Scaling to use the modified ran2 function
-         DO i=1,Sa
-            rnd=ran2(idum)
-            READ(unit(tmp),*) Na(i)
-            !Na(i)=100*Na(i) ! Additional abundances parameter scaling
-            Na(i)=Na(i)*(1+rnd*scale)
-            midNa=midNa+Na(i)
-         ENDDO
-         midNa=midNa/float(Sa)
-      ELSE
-         scale=widthNa/2    ! Scaling to use the modified ran2 function
-         DO i=1,Sa
-            rnd=ran2(idum)      ! Modified ran2 function to get a number between [-0.5-0.5]
-            Na(i)=midNa*(1+rnd*scale)
-            ! print *,i,Na(i),midNa,scale,' i, Na(i), debug'
-         ENDDO
-      ENDIF
+      tmp=3
+      call ReadGenerateTrixComp(unit,path,idum,Sp,tmp,readBetaP,midBetaP,midRhoP, ! Competition matrix, plants
+     &     widthBetaP,widthRhoP,BetaP)
 
-*     --- Cancel the scaling effects, comment otherwise
+      tmp=4
+      call ReadGenerateTrixComp(unit,path,idum,Sa,tmp,readBetaA,midBetaA,midRhoA, ! Competition matrix, animals
+     &     widthBetaA,widthRhoA,BetaA)
 
-      midNa=1
-      midNp=1
+      tmp=5
+      call ReadGenerateTrixInt(unit,path,idum,Sp,Sa,tmp,readGammaP,midGammaP, ! Coupling matrix, plants
+     &     widthGammaP,GammaP)
 
-*     --- Read/generate values for competition parameters, scaled with the average of the populations for the latter
-        
-      IF(Beta0.eq.0)THEN  
-         tmp=3
-         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
-         DO i=1,Sp
-            DO j=1,Sp
-               READ(unit(tmp),*) BetaP(i,j)
-               WRITE(unit(NfilesIn+tmp),*) BetaP(i,j)
-            ENDDO
-         ENDDO
-         CLOSE(unit(NfilesIn+tmp))
-
-         tmp=4
-         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
-         DO i=1,Sa
-            DO j=1,Sa
-               READ(unit(tmp),*) BetaA(i,j)
-               WRITE(unit(NfilesIn+tmp),*) BetaP(i,j)
-            ENDDO
-         ENDDO
-         CLOSE(unit(NfilesIn+tmp))
-
-      ELSE
-         scale=widthBeta/2
-         tmp=NfilesIn+3
-         DO i=1,Sp
-            DO j=1,Sp
-               rnd=ran2(idum)        
-               IF(i.eq.j)THEN
-                  BetaP(i,j)=Beta0*(1.0d0+rnd*scale)/midNp
-               ELSE
-                  BetaP(i,j)=rhoP*Beta0*(1.0d0+rnd*scale)/midNp
-               ENDIF
-               WRITE(unit(tmp),*) BetaP(i,j)
-            ENDDO
-         ENDDO 
-         CLOSE(unit(tmp))
-         tmp=NfilesIn+4
-         DO i=1,Sa
-            DO j=1,Sa
-               rnd=ran2(idum)
-               IF(i.eq.j)THEN
-                  BetaA(i,j)=Beta0*(1.0d0+rnd*scale)/midNa
-               ELSE
-                  BetaA(i,j)=rhoA*Beta0*(1.0d0+rnd*scale)/midNa
-               ENDIF
-               WRITE(unit(tmp),*) BetaA(i,j)
-            ENDDO
-         ENDDO
-         CLOSE(unit(tmp))
-      ENDIF
-
-*     --- Read/generate values for mutualistic parameters, scaled with the average of the populations for the latter, and the adjacency matrix
-
-      IF(Gamma0.lt.-10000)THEN  ! You need a very low negative value to read the matrices 
-         Gamma0=1               ! From now on Gamma0 is just a control parameter, and it is >0 if the system is mutualistic
-         tmp=5
-         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
-         DO i=1,Sp
-            DO k=1,Sa
-               READ(unit(tmp),*) GammaP(i,k)
-               WRITE(unit(NfilesIn+tmp),*) GammaP(i,k)
-            ENDDO
-         ENDDO
-         CLOSE(unit(NfilesIn+tmp))
-         tmp=6
-         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
-         DO i=1,Sa
-            DO k=1,Sp
-               READ(unit(tmp),*) GammaA(i,k)
-               WRITE(unit(NfilesIn+tmp),*) GammaA(i,k)
-            ENDDO            
-         ENDDO
-         CLOSE(unit(NfilesIn+tmp))
-      ELSE
-         IF(Gamma0.lt.0)THEN    ! We select here two possible intermediate scenario
-!     the first scenario has an increased value of alpha equivalent to the mutualistic strength but without the feedback. To model
-!     this case you need to keep Gamma0 with a negative value, what will be a control parameter, and set Gamma0A and Gamma0P
-!     to the absolute Gamma0 value. The second scenario sets Gamma0P to zero, and  Gamma0A=ABS(Gamma0), setting also Gamma0 as a positive
-!     value in order to proceed as if it were a mutualistic network (again, it works as a control value in the following).
-            Gamma0=ABS(Gamma0) ! 
-            Gamma0P=0           !ABS(Gamma0) ! the mutualistic strength but without the feedback            
-            Gamma0A=Gamma0      !ABS(Gamma0)            
-         ELSEIF(Gamma0.gt.0)THEN ! We just need to keep the gamma0 values
-            Gamma0P=Gamma0
-            Gamma0A=Gamma0
-         ENDIF
-         scale=widthGamma/2  
-         tmp=NfilesIn+5
-         DO i=1,Sp
-            DO k=1,Sa
-               rnd=ran2(idum) ! Modified ran2 function to get also a sign
-               IF(binary.eqv..true.)THEN ! We need a randomization of the parameters
-                  GammaP(i,k)=AdjP(i,k)*Gamma0P*(1.0d0+rnd*scale)/SQRT(midNa*midNp)
-               ELSE             ! The parameters are already randomized or with a structure that we want to conserve
-                  GammaP(i,k)=AdjP(i,k)*Gamma0P/SQRT(midNa*midNp)
-               ENDIF
-               WRITE(unit(tmp),*) GammaP(i,k)
-            ENDDO
-         ENDDO 
-         CLOSE(unit(tmp))
-         tmp=NfilesIn+6
-         DO i=1,Sa
-            DO k=1,Sp
-               rnd=ran2(idum)
-               IF(binary.eqv..true.)THEN ! We need a randomization of the parameters
-                  GammaA(i,k)=AdjA(i,k)*Gamma0A*(1.0d0+rnd*scale)/SQRT(midNa*midNp)
-               ELSE             ! The parameters are already randomized    
-                  GammaA(i,k)=AdjA(i,k)*Gamma0A/SQRT(midNa*midNp)
-               ENDIF
-               WRITE(unit(tmp),*) GammaA(i,k)
-            ENDDO
-         ENDDO
-         CLOSE(unit(tmp))
-      ENDIF
-
-*     --- Read/generate values for bare productivities
-
-c      PRINT *, '   -- Alphas..  '
-      IF(midAlpha.eq.0)THEN   
+      tmp=6
+      call ReadGenerateTrixInt(unit,path,idum,Sa,Sp,tmp,readGammaA,midGammaA, ! Coupling matrix, animals
+     &     widthGammaA,GammaA)               
+      
+      IF(fixedPoint .eq. 0)THEN ! Read or generate values for bare productivities
          tmp=7
-         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
-         AvP=0
-         VarP=0
-         AvA=0
-         VarA=0
-         DO i=1,Sp
-            rnd=ran2(idum)
-            READ(unit(tmp),*) AlphaP(i) 
-            AlphaP(i)=AlphaP(i)*(1+2*Delta*rnd) ! Careful with this, feasibility is not guaranteed, just adding extra noise
-            AvP=AvP+AlphaP(i)
-            VarP=VarP+AlphaP(i)**2
-         ENDDO
+         call ReadGenerateVec(unit,path,idum,Sp,tmp,readAlphaP,midAlphaP, ! Plants
+     &widthAlphaP,AlphaP)
          tmp=8
-         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
-         DO i=1,Sa
-            rnd=ran2(idum)
-            READ(unit(tmp),*) AlphaA(i)
-            AlphaA(i)=AlphaA(i)*(1+2*Delta*rnd)
-            AvA=AvA+AlphaA(i)
-            VarA=VarA+AlphaA(i)**2
-         ENDDO
-         AvP=AvP/float(Sp)
-         VarP=VarP/float(Sp)-AvP**2
-         AvA=AvA/float(Sa)
-         VarA=VarA/float(Sa)-AvA**2
-      ELSEIF(midAlpha.gt.0)THEN
-         scale=widthAlpha/2
-         tmp=NfilesIn+7
-         AvP=0
-         VarP=0
-         AvA=0
-         VarA=0
-         DO i=1,Sp
-            rnd=ran2(idum)
-            AlphaP(i)=midAlpha*(1+2*Delta*rnd)!(1.0d0+rnd*scale) ! Same happens here
-            AvP=AvP+AlphaP(i)
-            VarP=VarP+AlphaP(i)**2
-            !WRITE(unit(tmp),*) AlphaP(i)
-         ENDDO
-         tmp=NfilesIn+8
-         DO i=1,Sa
-            rnd=ran2(idum)
-            AlphaA(i)=midAlpha*(1+2*Delta*rnd)!(1.0d0+rnd*scale)
-            AvA=AvA+AlphaA(i)
-            VarA=VarA+AlphaA(i)**2
-            !WRITE(unit(tmp),*) AlphaA(i)
-         ENDDO
-         AvP=AvP/float(Sp)
-         VarP=VarP/float(Sp)-AvP**2
-         AvA=AvA/float(Sa)
-         VarA=VarA/float(Sa)-AvA**2
-      ELSE                      ! Generate alpha according to the constrains imposed by the other parameters (feasibility imposed)
-c         PRINT *, '   --- Looking for consistent alpha.. '
-         call Consistent_Alpha(NfilesIn,unit,idum,sizeA,sizeP,sizeT,
-     &BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,AlphaA,AlphaP,AvA,AvP,VarA,VarP)
+         call ReadGenerateVec(unit,path,idum,Sa,tmp,readAlphaA,midAlphaA, ! Animals
+     &widthAlphaA,AlphaA)
+      ELSE
+         ! Note that tmp=7,8 should be fixed within the subroutine
+         call Consistent_Alpha(NfilesIn,unit,idum,sizeA,sizeP,sizeT, ! Estimate alpha at steady state
+     &        BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,
+     &        AlphaA,AlphaP,AvA,AvP,VarA,VarP)
       ENDIF
-*     --- Further optional operations (to be compiled
-*     -- Select an specie and kill it:
-c$$$      rnd=ran2(idum)           ! Select an specie and kill it!
-c$$$      nkill=INT((rnd+0.5)*Sp)
-c$$$      Np(nkill)=0.0d0
-c$$$      AlphaP(nkill)=0
 
-*     -- Add noise to the abundances after you reach the fixed point (global stability test)
-c$$$      scale=0.7/2
-c$$$      DO i=1,Sp
-c$$$         rnd=ran2(idum)
-c$$$         Np(i)=Np(i)*(1+rnd*scale)
-c$$$      ENDDO
-c$$$      scale=0.7/2
-c$$$      DO i=1,Sa
-c$$$         rnd=ran2(idum)
-c$$$         Na(i)=Na(i)*(1+rnd*scale)
-c$$$      ENDDO
+*     --- Control parameters      
+*     .... First, some quantities to compute from the coupling interaction matrix
 
-*     --- Check the regime you are working in
+            call Topology(sizeA,sizeP,sizeT,GammaP,GammaA,alive,degreeP,degreeA,NestP,NestA,
+     &NestT,Connect,single,excludedP,excludedA) ! Compute some topological measures   
+      
+*     .... Next, we perform some additional controls on the alpha parameters, like the sign and variance
+*     to control that you are working in the regime you want (e.g. facultative vs. obligatory)
+*     mutualism, and to see the dependence with other parameters if you estimated them at a fixed point      
+      AvP=0
+      VarP=0
       NegAlphaP=0
       DO i=1,Sp
+         AvP=AvP+AlphaP(i)
+         VarP=VarP+AlphaP(i)**2
          IF(AlphaP(i).le.0) NegAlphaP=NegAlphaP+1
       ENDDO
+      AvA=0
+      VarA=0
       NegAlphaA=0
       DO i=1,Sa
+         AvA=AvA+AlphaA(i)
+         VarA=VarA+AlphaA(i)**2
          IF(AlphaA(i).le.0) NegAlphaA=NegAlphaA+1
-      ENDDO   
-*     --- Rewrite populations to simplify the notation
+      ENDDO
+      AvP=AvP/float(Sp)
+      VarP=VarP/float(Sp)-AvP**2
+      AvA=AvA/float(Sa)
+      VarA=VarA/float(Sa)-AvA**2
+  
+*     --- Finally,rewrite populations to simplify the notation
       k=0
       DO i=1,Sp
          k=k+1
@@ -403,19 +161,180 @@ c$$$      ENDDO
          k=k+1
          u(k)=Na(i)
       ENDDO      
-c      PRINT *, '<< Parameters generated/readed!'
+  
+      END
+
+*     *********************************************
+*     SUBROUTINE ReadGenerateVec
+*     *********************************************                                                  
+ 
+      SUBROUTINE ReadGenerateVec(unit,path,idum,Sx,tmp,readX,midX,widthX,X)
+      IMPLICIT NONE
+      INTEGER unit(30),idum
+      CHARACTER*40 path(30)
+      INTEGER Sx,tmp
+      REAL*8 midX,widthX,readX
+*     This routine either reads a vector from file
+*     identified by unit tmp, or it generates a random
+*     one with cells following uniform distribution
+*     centered at "midX" and width "widthX", which is a value
+*     between 0 and 1 representing a width between 0 and midX. In the case in
+*     which the matrix is read from file, it also randomizes
+*     the values using the parameter widthX, but  now centered
+*     at the value read. Then it  writes the vector in a new file and then returns it.      
+      REAL*8 rnd,ran2,scale
+      REAL*8 X(Sx)
+
+      scale=widthX/2           ! Width scaling to use the modified ran2 function
+      IF(midX.eq.0)THEN        ! Read from file
+         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
+         DO i=1,Sx
+            rnd=ran2(idum)
+            READ(unit(tmp),*) X(i)
+            X(i)=X(i)*(1+rnd*scale)
+            WRITE(unit(NfilesIn+tmp),*) X(i)
+         ENDDO
+      ELSE                      ! Generate parameters
+         DO i=1,Sx
+            rnd=ran2(idum)
+            X(i)=midX*(1+rnd*scale)
+            WRITE(unit(NfilesIn+tmp),*) X(i)
+         ENDDO
+      ENDIF
+      CLOSE(unit(NfilesIn+tmp))
+
       RETURN
  770  CONTINUE
       PRINT *,'  * * Problems opening unit: ',unit(tmp),' >> ',path(tmp)
-      call Warning()      
+      call Warning() 
       END
 
+      
+*     *********************************************
+*     SUBROUTINE ReadGenerateTrixComp
+*     *********************************************                                                  
+ 
+      SUBROUTINE ReadGenerateTrixComp(unit,path,idum,Sx,tmp,readM,midDiag,midOff,
+     &     widthDiag,widthOff,M)
+      IMPLICIT NONE
+      INTEGER unit(30),idum
+      CHARACTER*40 path(30)
+      INTEGER Sx,tmp,readM
+      REAL*8 midDiag,widthDiag,midOff,widthOff
+*     This routine either reads a competition matrix from file
+*     identified by unit tmp, or it generates a random
+*     one with cells following uniform distribution
+*     centered at "midDiag" and width "widthDiag" for diagonal
+*     cells and "minOff" and "widthOff" for off diagonal cells.
+*     In the case in which the matrix is read from file, it also randomizes
+*     the values using the parameters width, but  now centered
+*     at the value read. Then it
+*     writes the matrix in a new file and then returns it.
+*     With respect to the routine aimed to read the interaction
+*     matrix between pools, this one is a square matrix and has four parameters
+*     while that ReadGenerateTrixInt considers a rectangular matrix with two param.
+      REAL*8 rnd,ran2,scale
+      REAL*8 M(Sx,Sx)
+          
+      IF(midDiag.eq.0)THEN  
+         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
+         DO i=1,Sx
+            DO j=1,Sx
+               rnd=ran2(idum)        
+               READ(unit(tmp),*) M(i,j)
+               IF(i.eq.j)THEN
+                  scale=widthDiag/2
+                  M(i,j)=M(i,j)*(1.0d0+rnd*scale)
+               ELSE
+                  scale=widthOff/2
+                  M(i,j)=M(i,j)*(1.0d0+rnd*scale)
+               ENDIF
+               WRITE(unit(NfilesIn+tmp),*) M(i,j)
+            ENDDO
+         ENDDO
+      ELSE
+         DO i=1,Sx
+            DO j=1,Sx
+               rnd=ran2(idum)        
+               IF(i.eq.j)THEN
+                  scale=widthDiag/2
+                  M(i,j)=midDiag*(1.0d0+rnd*scale)
+               ELSE
+                  scale=widthOff/2
+                  M(i,j)=minOff*(1.0d0+rnd*scale)
+               ENDIF
+               WRITE(unit(NfilesIn+tmp),*) M(i,j)
+            ENDDO
+         ENDDO 
+      ENDIF
+      CLOSE(unit(NfilesIn+tmp))
+      RETURN
+ 770  CONTINUE
+      PRINT *,'  * * Problems opening unit: ',unit(tmp),' >> ',path(tmp)
+      call Warning() 
+      END
+
+      
+*     *********************************************
+*     SUBROUTINE ReadGenerateTrixInt
+*     *********************************************                                                  
+ 
+      SUBROUTINE ReadGenerateTrixInt(unit,path,idum,Sx,Sy,tmp,readM,midM,
+     &     widthM,M)
+      IMPLICIT NONE
+      INTEGER unit(30),idum
+      CHARACTER*40 path(30)
+      INTEGER Sx,Sy,tmp,readM
+      REAL*8 midM,widthM
+*     This routine either reads a matrix coupling pools of
+*     species from a file,  identified by unit tmp, or it generates a random
+*     one with cells following a uniform distribution
+*     centered at "midM" and width "widthM".
+*     In the case in which the matrix is read from file, it also randomizes
+*     the values using the parameters width, but  now centered
+*     at the value read. Then it
+*     writes the matrix in a new file and then returns it.
+*     With respect to the routine aimed to read the interaction
+*     matrix between pools, this one is a square matrix and has four parameters
+*     while that ReadGenerateTrixInt considers a rectangular matrix with two param.
+      REAL*8 rnd,ran2,scale
+      REAL*8 M(Sx,Sy)
+      
+      scale=widthM/2         
+      IF(midM.eq.0)THEN  
+         OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
+         DO i=1,Sx
+            DO j=1,Sy
+               rnd=ran2(idum)        
+               READ(unit(tmp),*) M(i,j)
+               M(i,j)=M(i,j)*(1.0d0+rnd*scale)
+               WRITE(unit(NfilesIn+tmp),*) M(i,j)
+            ENDDO
+         ENDDO
+      ELSE
+         DO i=1,Sx
+            DO j=1,Sy
+               rnd=ran2(idum)        
+               M(i,j)=midM*(1.0d0+rnd*scale)
+               WRITE(unit(NfilesIn+tmp),*) M(i,j)
+            ENDDO
+         ENDDO 
+      ENDIF
+      CLOSE(unit(NfilesIn+tmp))
+      RETURN
+ 770  CONTINUE
+      PRINT *,'  * * Problems opening unit: ',unit(tmp),' >> ',path(tmp)
+      call Warning() 
+      END
+
+      
 *     *********************************************
 *     SUBROUTINE Consistent_Alpha
 *     *********************************************                                                  
       
       SUBROUTINE Consistent_Alpha(NfilesIn,unit,idum,sizeA,sizeP,sizeT,
-     &BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,AlphaA,AlphaP,AvA,AvP,VarA,VarP)
+     &     BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,
+     &     AlphaA,AlphaP,AvA,AvP,VarA,VarP)
       IMPLICIT NONE
       INTEGER sizeA,sizeP,sizeT
       INTEGER*8 idum
@@ -424,6 +343,7 @@ c      PRINT *, '<< Parameters generated/readed!'
       REAL*8 GammaA(sizeA,sizeP),GammaP(sizeP,sizeA)
       REAL*8 Np(sizeP),Na(sizeA),u(sizeT)
       REAL*8 hhA(sizeA),hhP(sizeP)
+      REAL*8 ggA(sizeA),ggP(sizeP)
 *     This subroutine determines the parameter alpha compatible
 *     with all the other parameters in order to get negative
 *     alpha for animals and positive for plants (obligate mutualism).
@@ -434,24 +354,24 @@ c      PRINT *, '<< Parameters generated/readed!'
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
       REAL*8 AvA,AvP,VarA,VarP
 *     ...Commons
-      REAL*8 midNa,widthNa,midNp,widthNp
+      REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
-      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
       REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
-      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
-      REAL*8 hA,widthHa,hP,widthHp
-      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
+      REAL*8 midHp,widthHp,midHa,widthHa
+      REAL*8 midGa,widthGa,midGp,widthGp
       REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+      COMMON/Parameters/midNp,widthNp,midNa,widthNa,
      &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
-     &Beta0P,widthBetaP,Beta0A,widthBetaA,
-     &rhoP,widthRhoP,rhoA,widthRhoA,
-     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
-     &hA,widthHa,hP,widthHp,
-     &gA,widthGa,gP,widthGp
+     &midBetaP,widthBetaP,midBetaA,widthBetaA,
+     &midRhoP,widthRhoP,midRhoA,widthRhoA,
+     &midGammaP,widthGammaP,midGammaA,widthGammaA,
+     &midHa,widthHa,midHp,widthHp,
+     &midGa,widthGa,midGp,widthGp
       COMMON/Species/ Sa,Sp
-
+      
       IF(Gamma0.ne.0)THEN
          DO i=1,Sp              ! Compute first a Holling like term to saturate the ODEs
             HollingP(i)=0.0d0
@@ -466,8 +386,7 @@ c      PRINT *, '<< Parameters generated/readed!'
             ENDDO
          ENDDO     
       ENDIF
-      AvP=0
-      VarP=0
+
       tmp=NfilesIn+7
       DO i=1,Sp                 ! Compute first Holling term to saturate the ODEs
          Comp=0.0d0
@@ -485,14 +404,11 @@ c      PRINT *, '<< Parameters generated/readed!'
          IF(Gamma0.lt.0)THEN    ! A second possible type of competition with Gamma0=0 and Alphas increased by Mut
             AlphaP(i)=AlphaP(i)+Mut
          ENDIF
-         AvP=AvP+AlphaP(i)
-         VarP=VarP+AlphaP(i)**2
-         WRITE(unit(tmp),*) AlphaP(i),Comp,Mut
+
+         WRITE(unit(NfilesIn+tmp),*) AlphaP(i),Comp,Mut
       ENDDO
-      CLOSE(unit(tmp))
-      AvA=0
-      VarA=0
-      tmp=NfilesIn+8
+      CLOSE(unit(NfilesIn+tmp))
+      tmp=8
       DO i=1,Sa                 ! Compute first Holling term to saturate the ODEs
          Comp=0.0d0
          Mut=0.0d0
@@ -509,18 +425,10 @@ c      PRINT *, '<< Parameters generated/readed!'
          IF(Gamma0.lt.0)THEN    ! We model competition with Gammas=0 and Alphas increased by Mut
             AlphaA(i)=AlphaA(i)+Mut
          ENDIF
-         AvA=AvA+AlphaA(i)
-         VarA=VarA+AlphaA(i)**2
-         WRITE(unit(tmp),*) AlphaA(i),Comp,Mut
+
+         WRITE(unit(NfilesIn+tmp),*) AlphaA(i),Comp,Mut
       ENDDO
-      CLOSE(unit(tmp))
-      IF(Gamma0.lt.0)THEN       ! After modifying the alphas we declare that we model comptition.
-         Gamma0=0
-      ENDIF
-      AvP=AvP/float(Sp)
-      VarP=VarP/float(Sp)-AvP**2
-      AvA=AvA/float(Sa)
-      VarA=VarA/float(Sa)-AvA**2
+      CLOSE(unit(NfilesIn+tmp))
 
       RETURN
       END

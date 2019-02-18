@@ -397,22 +397,22 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
       REAL*8 HollingA(sizeA),HollingP(sizeP)
       REAL*8 f(sizeT),Comp,Mut
 *     ...Commons
-      REAL*8 midNa,widthNa,midNp,widthNp
+      REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
-      REAL*8 Beta0P,widthBetaP,Beta0A,widthBetaA
+      REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
       REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
-      REAL*8 Gamma0P,widthGammaP,Gamma0A,widthGammaA
-      REAL*8 hA,widthHa,hP,widthHp
-      REAL*8 gA,widthGa,gP,widthGp
+      REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
+      REAL*8 midHp,widthHp,midHa,widthHa
+      REAL*8 midGa,widthGa,midGp,widthGp
       REAL*8 Delta
       INTEGER Sa,Sp
-      COMMON/Parameters/midNa,widthNa,midNp,widthNp
+      COMMON/Parameters/midNp,widthNp,midNa,widthNa,
      &midAlphaP,widthAlphaP,midAlphaA,widthAlphaA,
-     &Beta0P,widthBetaP,Beta0A,widthBetaA,
-     &rhoP,widthRhoP,rhoA,widthRhoA,
-     &Gamma0P,widthGammaP,Gamma0A,widthGammaA,
-     &hA,widthHa,hP,widthHp,
-     &gA,widthGa,gP,widthGp
+     &midBetaP,widthBetaP,midBetaA,widthBetaA,
+     &midRhoP,widthRhoP,midRhoA,widthRhoA,
+     &midGammaP,widthGammaP,midGammaA,widthGammaA,
+     &midHa,widthHa,midHp,widthHp,
+     &midGa,widthGa,midGp,widthGp
       COMMON/Species/ Sa,Sp
 
       IF(Gamma0.gt.0)THEN
