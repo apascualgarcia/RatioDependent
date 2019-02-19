@@ -113,8 +113,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       ELSE
          ! Note that tmp=7,8 should be fixed within the subroutine
          call Consistent_Alpha(NfilesIn,unit,idum,sizeA,sizeP,sizeT, ! Estimate alpha at steady state
-     &BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,
-     &AlphaA,AlphaP,AvA,AvP,VarA,VarP)
+     &BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,AlphaA,AlphaP)
       ENDIF
 
 *     --- Control parameters      
@@ -329,8 +328,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     *********************************************                                                  
       
       SUBROUTINE Consistent_Alpha(NfilesIn,unit,idum,sizeA,sizeP,sizeT,
-     &BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,
-     &AlphaA,AlphaP,AvA,AvP,VarA,VarP)
+     &BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,AlphaA,AlphaP)
       IMPLICIT NONE
       INTEGER sizeA,sizeP,sizeT
       INTEGER*8 idum
@@ -348,7 +346,6 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       REAL*8 rnd,Comp,Int,ran2
       REAL*8 HollingA(sizeA),HollingP(sizeP)
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
-      REAL*8 AvA,AvP,VarA,VarP
 *     ...Commons
       REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
@@ -396,11 +393,10 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
                GollingA(i)=GollingA(i)+GammaP(k,i)*Np(k)
             ENDDO
          ENDIF
-      ENDDO     
-      
-
+      ENDDO          
+*     --- Compute now the Alpha at fixed point
       tmp=7
-      DO i=1,Sp                 ! Compute first Holling term to saturate the ODEs
+      DO i=1,Sp                 ! Plants
          Comp=0.0d0
          Int=0.0d0
          rnd=ran2(idum)
@@ -416,7 +412,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       ENDDO
       CLOSE(unit(NfilesIn+tmp))
       tmp=8
-      DO i=1,Sa                 ! Compute first Holling term to saturate the ODEs
+      DO i=1,Sa                 ! Animals
          Comp=0.0d0
          Int=0.0d0
          rnd=ran2(idum)
@@ -659,11 +655,8 @@ c$$$      ENDIF
       iv(j)=idum                   
       if(iy.lt.1)iy=iy+IMM1
       ran2=min(AM*iy,RNMX)      ! Because users don't expect endpoint values.
-      IF(ran2.ge.0.5d0)THEN ! Map the interval (0-1) to (-0.5,0.5)
-         ran2=ran2-0.5d0         
-      ELSE
-         ran2=-ran2
-      ENDIF
+!     Map the interval (0-1) to (-0.5,0.5)
+      ran2=ran2-0.5d0         
       return
       END
             
