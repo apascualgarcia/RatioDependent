@@ -404,6 +404,7 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
+      REAL*8 f0P,f0A
       REAL*8 Delta
       INTEGER Sa,Sp
       COMMON/Parameters/midNp,widthNp,midNa,widthNa,
@@ -412,7 +413,7 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp
+     &midGa,widthGa,midGp,widthGp,f0P,f0A
       COMMON/Species/ Sa,Sp
 
       IF(Gamma0.gt.0)THEN

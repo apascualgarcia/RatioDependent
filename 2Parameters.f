@@ -5,7 +5,7 @@
       
       SUBROUTINE Read_Generate_Inputs(path,Nfiles,NfilesIn,unit,today,now,seed,fixedPoint,
      &sizeA,sizeP,sizeT,readNp,readNa,readAlphaP,readAlphaA,
-     &readBetaP,readBetaA,readRhoP,readRhoA,readGammaP,readGammaA,
+     &readBetaP,readBetaA,readGammaP,readGammaA,
      &readHp,readHa,readGp,readGa,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,
      &degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
      &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,seedout,AvA,AvP,VarA,VarP)
@@ -16,7 +16,7 @@
       CHARACTER*40 path(30)
       REAL*8 seed,fixedPoint
       INTEGER readNp,readNa,readAlphaP,readAlphaA
-      INTEGER readBetaP,readBetaA,readRhoP,readRhoA
+      INTEGER readBetaP,readBetaA
       INTEGER readGammaP,readGammaA
       INTEGER readHp,readHa,readGp,readGa
 *     This subroutine either reads or generates random parameters, 
@@ -54,6 +54,7 @@
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
+      REAL*8 f0P,f0A
       REAL*8 Delta
       INTEGER Sa,Sp
       COMMON/Parameters/midNp,widthNp,midNa,widthNa,
@@ -62,7 +63,7 @@
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp
+     &midGa,widthGa,midGp,widthGp,f0P,f0A
       COMMON/Species/ Sa,Sp
 
 *     --- Prepare random numbers and initialize the alive vector
@@ -93,19 +94,19 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 
       tmp=3
       call ReadGenerateTrixComp(unit,path,idum,Sp,tmp,readBetaP,midBetaP,midRhoP, ! Competition matrix, plants
-     &     widthBetaP,widthRhoP,BetaP)
+     &widthBetaP,widthRhoP,BetaP)
 
       tmp=4
       call ReadGenerateTrixComp(unit,path,idum,Sa,tmp,readBetaA,midBetaA,midRhoA, ! Competition matrix, animals
-     &     widthBetaA,widthRhoA,BetaA)
+     &widthBetaA,widthRhoA,BetaA)
 
       tmp=5
       call ReadGenerateTrixInt(unit,path,idum,Sp,Sa,tmp,readGammaP,midGammaP, ! Coupling matrix, plants
-     &     widthGammaP,GammaP)
+     &widthGammaP,GammaP)
 
       tmp=6
       call ReadGenerateTrixInt(unit,path,idum,Sa,Sp,tmp,readGammaA,midGammaA, ! Coupling matrix, animals
-     &     widthGammaA,GammaA)               
+     &widthGammaA,GammaA)               
       
       IF(fixedPoint .eq. 0)THEN ! Read or generate values for bare productivities
          tmp=7
@@ -117,8 +118,8 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       ELSE
          ! Note that tmp=7,8 should be fixed within the subroutine
          call Consistent_Alpha(NfilesIn,unit,idum,sizeA,sizeP,sizeT, ! Estimate alpha at steady state
-     &        BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,
-     &        AlphaA,AlphaP,AvA,AvP,VarA,VarP)
+     &BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,
+     &AlphaA,AlphaP,AvA,AvP,VarA,VarP)
       ENDIF
 
 *     --- Control parameters      
@@ -186,7 +187,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       REAL*8 X(Sx)
 
       scale=widthX/2           ! Width scaling to use the modified ran2 function
-      IF(midX.eq.0)THEN        ! Read from file
+      IF(readX.eq.1)THEN        ! Read from file
          OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
          DO i=1,Sx
             rnd=ran2(idum)
@@ -214,8 +215,8 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     SUBROUTINE ReadGenerateTrixComp
 *     *********************************************                                                  
  
-      SUBROUTINE ReadGenerateTrixComp(unit,path,idum,Sx,tmp,readM,midDiag,midOff,
-     &     widthDiag,widthOff,M)
+      SUBROUTINE ReadGenerateTrixComp(unit,path,idum,Sx,tmp,readM,midDiag,
+     &readOff,midOff,widthDiag,widthOff,M)
       IMPLICIT NONE
       INTEGER unit(30),idum
       CHARACTER*40 path(30)
@@ -236,7 +237,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       REAL*8 rnd,ran2,scale
       REAL*8 M(Sx,Sx)
           
-      IF(midDiag.eq.0)THEN  
+      IF(readM.eq.1)THEN  
          OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
          DO i=1,Sx
             DO j=1,Sx
@@ -301,7 +302,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       REAL*8 M(Sx,Sy)
       
       scale=widthM/2         
-      IF(midM.eq.0)THEN  
+      IF(readM.eq.1)THEN  
          OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
          DO i=1,Sx
             DO j=1,Sy
@@ -333,8 +334,8 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     *********************************************                                                  
       
       SUBROUTINE Consistent_Alpha(NfilesIn,unit,idum,sizeA,sizeP,sizeT,
-     &     BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,
-     &     AlphaA,AlphaP,AvA,AvP,VarA,VarP)
+     &BetaA,BetaP,GammaA,GammaP,Na,Np,hhA,hhP,ggA,ggP,
+     &AlphaA,AlphaP,AvA,AvP,VarA,VarP)
       IMPLICIT NONE
       INTEGER sizeA,sizeP,sizeT
       INTEGER*8 idum
@@ -361,6 +362,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
+      REAL*8 f0P,f0A
       REAL*8 Delta
       INTEGER Sa,Sp
       COMMON/Parameters/midNp,widthNp,midNa,widthNa,
@@ -369,23 +371,30 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp
+     &midGa,widthGa,midGp,widthGp,f0P,f0A
       COMMON/Species/ Sa,Sp
       
-      IF(Gamma0.ne.0)THEN
-         DO i=1,Sp              ! Compute first a Holling like term to saturate the ODEs
-            HollingP(i)=0.0d0
+      DO i=1,Sp                 ! Compute first a Holling like term to saturate the ODEs
+         HollingP(i)=0.0d0
+         GollingP(i)=0.0d0
+         IF(hhP(i).gt.0)THEN
             DO k=1,Sa
                HollingP(i)=HollingP(i)+GammaP(i,k)*Na(k)
             ENDDO
-         ENDDO
-         DO i=1,Sa
-            HollingA(i)=0.0d0
+         ENDIF
+         IF(ggP(i).gt.0)THEN
             DO k=1,Sp
-               HollingA(i)=HollingA(i)+GammaA(i,k)*Np(k)
+               HollingP(i)=HollingP(i)+GammaP(i,k)*Na(k)
             ENDDO
-         ENDDO     
-      ENDIF
+         ENDIF
+      ENDDO
+      DO i=1,Sa
+         HollingA(i)=0.0d0
+         DO k=1,Sp
+            HollingA(i)=HollingA(i)+GammaA(i,k)*Np(k)
+         ENDDO
+      ENDDO     
+      
 
       tmp=NfilesIn+7
       DO i=1,Sp                 ! Compute first Holling term to saturate the ODEs

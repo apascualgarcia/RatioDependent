@@ -80,6 +80,7 @@
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
+      REAL*8 f0P,f0A
       REAL*8 Delta
       INTEGER Sa,Sp
       COMMON/Parameters/midNp,widthNp,midNa,widthNa,
@@ -88,7 +89,7 @@
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp
+     &midGa,widthGa,midGp,widthGp,f0P,f0A
       COMMON/Species/ Sa,Sp
 
       PRINT *, ' ' 
@@ -199,6 +200,7 @@
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
+      REAL*8 f0P,f0A
       REAL*8 Delta
       INTEGER Sa,Sp
       COMMON/Parameters/midNp,widthNp,midNa,widthNa,
@@ -207,7 +209,7 @@
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp
+     &midGa,widthGa,midGp,widthGp,f0P,f0A
       COMMON/Species/ Sa,Sp
        
       Nfiles=26
@@ -216,46 +218,48 @@
       path0='Beyond-MeanField.in'
 c      PRINT *, '  * Reading files from: ',Path0
       OPEN(UNIT=69,STATUS='OLD',ERR=769,FILE=path0)
+      
       READ(69,*) readNp         ! One if you read Np from file, 0 if will be generated internally
       READ(69,*) midNp          ! Distribution of densities centered at midNp.      
       READ(69,*) widthNp
       READ(69,*) readNa         ! One if you read Np from file, 0 if will be generated internally
       READ(69,*) midNa          ! Distribution of densities centered at this value
       READ(69,*) widthNa        ! with this width
-      READ(69,*) readAlphaP         ! One if you read from file, 0 if will be generated internally            
+      READ(69,*) readAlphaP     ! One if you read from file, 0 if will be generated internally            
       READ(69,*) midAlphaP      ! Distribution of densities centered ..(zero if reading from file)
       READ(69,*) widthAlphaP
       READ(69,*) readAlphaA     ! One if you read from file, 0 if will be generated internally            
       READ(69,*) midAlphaA      ! Distribution of densities centered ..(zero if reading from file)
       READ(69,*) widthAlphaA
       READ(69,*) readBetaP      ! One if you read from file, 0 if will be generated internally            
-      READ(69,*) midBetaP         ! Intraspecific competition for plants
+      READ(69,*) midBetaP       ! Intraspecific competition for plants
       READ(69,*) widthBetaP     ! Width of the distribution
       READ(69,*) readBetaA      ! One if you read from file, 0 if will be generated internally            
-      READ(69,*) midBetaA         ! Intraspecific competition for animals
+      READ(69,*) midBetaA       ! Intraspecific competition for animals
       READ(69,*) widthBetaA     ! Width of the distribution
-      READ(69,*) midRhoP           ! Constant for interspecific competition (plants)
+      READ(69,*) midRhoP        ! Constant for interspecific competition (plants)
       READ(69,*) widthRhoP      ! Width of the distribution
-      READ(69,*) midRhoA           ! Constant for interspecific competition (animals)
+      READ(69,*) midRhoA        ! Constant for interspecific competition (animals)
       READ(69,*) widthRhoA      ! Width of the distribution
       READ(69,*) readGammaP     ! One if you read from file, 0 if will be generated internally            
-      READ(69,*) midGammaP        ! Coupling interactions with plants in rows and animals in columns
+      READ(69,*) midGammaP      ! Coupling interactions with plants in rows and animals in columns
       READ(69,*) widthGammaP
       READ(69,*) readGammaA     ! One if you read from file, 0 if will be generated internally            
-      READ(69,*) midGammaA        ! Coupling interactions with plants in rows and animals in columns
+      READ(69,*) midGammaA      ! Coupling interactions with plants in rows and animals in columns
       READ(69,*) widthGammaA
       READ(69,*) readHp         ! One if you read from file, 0 if will be generated internally            
-      READ(69,*) midHp             ! handling time for plants with respect to animals abundances
+      READ(69,*) midHp          ! handling time for plants with respect to animals abundances
       READ(69,*) widthHp        ! Width of the distribution
       READ(69,*) readHa         ! One if you read from file, 0 if will be generated internally            
-      READ(69,*) midHa             ! handling time for animals
+      READ(69,*) midHa          ! handling time for animals
       READ(69,*) widthHa        ! Width of the distribution
       READ(69,*) readGp         ! One if you read from file, 0 if will be generated internally            
-      READ(69,*) midGp             ! handling time for plants with respect to plants abundances
+      READ(69,*) midGp          ! handling time for plants with respect to plants abundances
       READ(69,*) widthGp        ! Width of the distribution
       READ(69,*) readGa         ! One if you read from file, 0 if will be generated internally            
-      READ(69,*) midGa             ! handling time for animals
+      READ(69,*) midGa          ! handling time for animals
       READ(69,*) widthGa        ! Width of the distribution
+      READ(69,*) f0             ! Scale of the saturating term
       READ(69,*) Sp             ! Number of species of plants
       READ(69,*) Sa             ! of animals
       READ(69,*) Delta          ! Amplitude of the growth rates fluctuations
@@ -347,6 +351,7 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
+      REAL*8 f0P,f0A
       REAL*8 Delta
       INTEGER Sa,Sp
       COMMON/Parameters/midNp,widthNp,midNa,widthNa,
@@ -355,7 +360,7 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp
+     &midGa,widthGa,midGp,widthGp,f0P,f0A
       COMMON/Species/ Sa,Sp
  
       call When(Today,Now)      ! Compute the date for the file header
@@ -439,6 +444,8 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
          WRITE(unit,*) 'midGa ',midGa ! handling time for plants
          WRITE(unit,*) 'widthGa ',widthGa ! handling time for plants 
       ENDIF
+      WRITE(unit,*) 'f0P ',f0P  ! of plants
+      WRITE(unit,*) 'f0A ',f0A  ! of animals
       WRITE(unit,*) 'Sp ',Sp    ! of plants
       WRITE(unit,*) 'Sa ',Sa    ! Number of species of animals
       WRITE(unit,*) 'Delta  ',Delta ! Amplitude of the growth rates fluctuations
@@ -507,6 +514,7 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
+      REAL*8 f0P,f0A
       REAL*8 Delta
       INTEGER Sa,Sp
       COMMON/Parameters/midNp,widthNp,midNa,widthNa,
@@ -515,7 +523,7 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp
+     &midGa,widthGa,midGp,widthGp,f0P,f0A
       COMMON/Species/ Sa,Sp
 
       BiomassP=0.0d0
