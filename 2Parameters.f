@@ -91,23 +91,18 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       call ReadGenerateVec(unit,path,idum,Sp,tmp,readGp,midGp,widthGp,ggP) ! handling times same pool abundances
       tmp=12
       call ReadGenerateVec(unit,path,idum,Sa,tmp,readGa,midGa,widthNGa,ggA)
-
       tmp=3
       call ReadGenerateTrixComp(unit,path,idum,Sp,tmp,readBetaP,midBetaP,midRhoP, ! Competition matrix, plants
      &widthBetaP,widthRhoP,BetaP)
-
       tmp=4
       call ReadGenerateTrixComp(unit,path,idum,Sa,tmp,readBetaA,midBetaA,midRhoA, ! Competition matrix, animals
      &widthBetaA,widthRhoA,BetaA)
-
       tmp=5
       call ReadGenerateTrixInt(unit,path,idum,Sp,Sa,tmp,readGammaP,midGammaP, ! Coupling matrix, plants
      &widthGammaP,GammaP)
-
       tmp=6
       call ReadGenerateTrixInt(unit,path,idum,Sa,Sp,tmp,readGammaA,midGammaA, ! Coupling matrix, animals
-     &widthGammaA,GammaA)               
-      
+     &widthGammaA,GammaA)                     
       IF(fixedPoint .eq. 0)THEN ! Read or generate values for bare productivities
          tmp=7
          call ReadGenerateVec(unit,path,idum,Sp,tmp,readAlphaP,midAlphaP, ! Plants
@@ -350,7 +345,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     alpha for animals and positive for plants (obligate mutualism).
 *     We expect to get stable systems using this criteria.
       INTEGER i,j,k,tmp
-      REAL*8 rnd,Comp,Mut,ran2
+      REAL*8 rnd,Comp,Int,ran2
       REAL*8 HollingA(sizeA),HollingP(sizeP)
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
       REAL*8 AvA,AvP,VarA,VarP
@@ -376,66 +371,63 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       
       DO i=1,Sp                 ! Compute first a Holling like term to saturate the ODEs
          HollingP(i)=0.0d0
-         GollingP(i)=0.0d0
+         GollingP(i)=0.0d0 ! New Holling term, a hybrid between Holling and Gollum
          IF(hhP(i).gt.0)THEN
             DO k=1,Sa
                HollingP(i)=HollingP(i)+GammaP(i,k)*Na(k)
             ENDDO
          ENDIF
          IF(ggP(i).gt.0)THEN
-            DO k=1,Sp
-               HollingP(i)=HollingP(i)+GammaP(i,k)*Na(k)
+            DO k=1,Sa
+               GollingP(i)=GollingP(i)+GammaA(k,i)*Na(k)
             ENDDO
          ENDIF
       ENDDO
       DO i=1,Sa
          HollingA(i)=0.0d0
-         DO k=1,Sp
-            HollingA(i)=HollingA(i)+GammaA(i,k)*Np(k)
-         ENDDO
+         GollingA(i)=0.0d0
+         IF(hhA(i).gt.0)THEN
+            DO k=1,Sp
+               HollingA(i)=HollingA(i)+GammaA(i,k)*Np(k)
+            ENDDO
+         ENDIF
+         IF(ggA(i).gt.0)THEN
+            DO k=1,Sp
+               GollingA(i)=GollingA(i)+GammaP(k,i)*Np(k)
+            ENDDO
+         ENDIF
       ENDDO     
       
 
-      tmp=NfilesIn+7
+      tmp=7
       DO i=1,Sp                 ! Compute first Holling term to saturate the ODEs
          Comp=0.0d0
-         Mut=0.0d0
+         Int=0.0d0
          rnd=ran2(idum)
          DO j=1,Sp
             Comp=Comp+BetaP(i,j)*Np(j)
-         ENDDO
-         IF(Gamma0.ne.0)THEN
-            DO k=1,Sa
-               Mut=Mut+GammaP(i,k)*Na(k)/(1+hhP(i)*HollingP(i))
-            ENDDO
-         ENDIF
-         AlphaP(i)=(Comp-Mut)*(1+2*Delta*rnd) ! The rnd scaling factor is 2 here
-         IF(Gamma0.lt.0)THEN    ! A second possible type of competition with Gamma0=0 and Alphas increased by Mut
-            AlphaP(i)=AlphaP(i)+Mut
-         ENDIF
+         ENDDO         
+         DO k=1,Sa
+            Int=Int+GammaP(i,k)*Na(k)/(f0P+hhP(i)*HollingP(i)+ggA(k)*GollingA(k))
+         ENDDO         
+         AlphaP(i)=(Comp-Int)*(1+2*Delta*rnd) ! The rnd scaling factor is 2 here
 
-         WRITE(unit(NfilesIn+tmp),*) AlphaP(i),Comp,Mut
+         WRITE(unit(NfilesIn+tmp),*) AlphaP(i),Comp,Int
       ENDDO
       CLOSE(unit(NfilesIn+tmp))
       tmp=8
       DO i=1,Sa                 ! Compute first Holling term to saturate the ODEs
          Comp=0.0d0
-         Mut=0.0d0
+         Int=0.0d0
          rnd=ran2(idum)
          DO j=1,Sa
             Comp=Comp+BetaA(i,j)*Na(j)
          ENDDO
-         IF(Gamma0.ne.0)THEN    ! There is no pure competition
-            DO k=1,Sp
-               Mut=Mut+GammaA(i,k)*Np(k)/(1+hhA(i)*HollingA(i))
-            ENDDO
-         ENDIF         
-         AlphaA(i)=(Comp-Mut)*(1+2*Delta*rnd) ! The rnd scaling factor is 2 here
-         IF(Gamma0.lt.0)THEN    ! We model competition with Gammas=0 and Alphas increased by Mut
-            AlphaA(i)=AlphaA(i)+Mut
-         ENDIF
-
-         WRITE(unit(NfilesIn+tmp),*) AlphaA(i),Comp,Mut
+         DO k=1,Sp
+            Int=Int+GammaA(i,k)*Np(k)/(f0A+hhA(i)*HollingA(i)+ggP(k)*GollingP(k))
+         ENDDO         
+         AlphaA(i)=(Comp-Int)*(1+2*Delta*rnd) ! The rnd scaling factor is 2 here
+         WRITE(unit(NfilesIn+tmp),*) AlphaA(i),Comp,Int
       ENDDO
       CLOSE(unit(NfilesIn+tmp))
 
@@ -638,8 +630,8 @@ c$$$      ENDIF
 *     of the endpoint values). Call with idum a negative integer to initialize; thereafter, do not
 *     alter idum between successive deviates in a sequence. RNMX should approximate the largest
 *     floating value that is less than 1. 
-*     ---Mod¡fied July 2012 (A.P-G.) I have modified the function ran2 to 
-*     give a number between [-0.5-0.5]
+*     ---Modified July 2012 (A.P-G.) I have modified the function ran2 to 
+*     give a number between [-0.5,0.5]
       INTEGER idum2,j,k,iv(NTAB),iy
       SAVE iv,iy,idum2
       DATA idum2/123456789/, iv/NTAB*0/, iy/0/
@@ -663,7 +655,7 @@ c$$$      ENDIF
       idum2=IA2*(idum2-k*IQ2)-k*IR2 ! Compute idum2=mod(IA2*idum2,IM2)  likewise.
       IF(idum2.lt.0) idum2=idum2+IM2
       j=1+iy/NDIV               ! Will be in the range 1:NTAB.
-      iy=iv(j)-idum2            ! Here idum is shued, idum and idum2 are combined to generate output
+      iy=iv(j)-idum2            ! Here idum is shuffled, idum and idum2 are combined to generate output
       iv(j)=idum                   
       if(iy.lt.1)iy=iy+IMM1
       ran2=min(AM*iy,RNMX)      ! Because users don't expect endpoint values.
