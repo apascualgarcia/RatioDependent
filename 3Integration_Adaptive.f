@@ -395,7 +395,7 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
 *     Evaluates the ODEs for given values of the abundances at time t
       INTEGER i,j,k
       REAL*8 HollingA(sizeA),HollingP(sizeP)
-      REAL*8 f(sizeT),Comp,Mut
+      REAL*8 f(sizeT),Comp,Int
 *     ...Commons
       REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
@@ -416,47 +416,62 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
      &midGa,widthGa,midGp,widthGp,f0P,f0A
       COMMON/Species/ Sa,Sp
 
-      IF(Gamma0.gt.0)THEN
-         DO i=1,Sp              ! Compute first Holling term to saturate the ODEs
-            HollingP(i)=0.0d0
+      DO i=1,Sp                 ! Compute first a Holling like term to saturate the ODEs
+         HollingP(i)=0.0d0
+         GollingP(i)=0.0d0 ! New Holling term, a hybrid between Holling and Gollum
+         IF(hhP(i).gt.0)THEN
             DO k=1,Sa
                HollingP(i)=HollingP(i)+GammaP(i,k)*u(Sp+k)
             ENDDO
-         ENDDO
-         DO i=1,Sa
-            HollingA(i)=0.0d0
+         ENDIF
+         IF(ggP(i).gt.0)THEN
+            DO k=1,Sa
+               GollingP(i)=GollingP(i)+GammaA(k,i)*u(Sp+k)
+            ENDDO
+         ENDIF
+      ENDDO
+      DO i=1,Sa
+         HollingA(i)=0.0d0
+         GollingA(i)=0.0d0
+         IF(hhA(i).gt.0)THEN
             DO k=1,Sp
                HollingA(i)=HollingA(i)+GammaA(i,k)*u(k)
             ENDDO
-         ENDDO     
-      ENDIF
-      
+         ENDIF
+         IF(ggA(i).gt.0)THEN
+            DO k=1,Sp
+               GollingA(i)=GollingA(i)+GammaP(k,i)*u(k)
+            ENDDO
+         ENDIF
+      ENDDO
+*     --- Compute the derivatives
       DO i=1,Sp                 ! Compute first Holling term to saturate the ODEs
          Comp=0.0d0
-         Mut=0.0d0
+         Int=0.0d0
          DO j=1,Sp
             Comp=Comp+BetaP(i,j)*u(j)
          ENDDO
          IF(Gamma0.gt.0)THEN
             DO k=1,Sa
-               Mut=Mut+GammaP(i,k)*u(Sp+k)/(1+hhP(i)*HollingP(i))
+               Int=Int+GammaP(i,k)*u(Sp+k)/(f0P+hhP(i)*HollingP(i)+ggA(k)*GollingA(k))
             ENDDO
          ENDIF
-         f(i)=u(i)*(AlphaP(i)-Comp+Mut)
+         f(i)=u(i)*(AlphaP(i)-Comp+Int)
       ENDDO
       DO i=1,Sa                 ! Compute first Holling term to saturate the ODEs
          Comp=0.0d0
-         Mut=0.0d0
+         Int=0.0d0
          DO j=1,Sa
             Comp=Comp+BetaA(i,j)*u(Sp+j)
          ENDDO
          IF(Gamma0.gt.0)THEN
             DO k=1,Sp
-               Mut=Mut+GammaA(i,k)*u(k)/(1+hhA(i)*HollingA(i))
+               Int=Int+GammaA(i,k)*u(k)/(f0A+hhA(i)*HollingA(i)+ggP(k)*GollingP(k))
             ENDDO
          ENDIF
-         f(Sp+i)=u(Sp+i)*(AlphaA(i)-Comp+Mut)
+         f(Sp+i)=u(Sp+i)*(AlphaA(i)-Comp+Int)
       ENDDO
+
       RETURN
       END
 
