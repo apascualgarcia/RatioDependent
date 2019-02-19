@@ -7,8 +7,9 @@
      &sizeA,sizeP,sizeT,readNp,readNa,readAlphaP,readAlphaA,
      &readBetaP,readBetaA,readGammaP,readGammaA,
      &readHp,readHa,readGp,readGa,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,
-     &degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
-     &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,seedout,AvA,AvP,VarA,VarP)
+     &degreeP,degreeA,NestA,NestP,NestT,Connect,single,
+     &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,ggA,ggP,seedout,AvA,AvP,VarA,VarP)
+      
       IMPLICIT NONE
       INTEGER sizeA,sizeP,sizeT
       INTEGER unit(30),Nfiles,NfilesIn
@@ -35,7 +36,6 @@
       INTEGER i,j,k,tmp,nkill
       REAL*8 scale,rnd,ran2,seedout,c
       INTEGER*8 idum
-      REAL AdjA(sizeA,sizeP),AdjP(sizeP,sizeA)
       REAL degreeP(sizeP),degreeA(sizeA)
       INTEGER excludedP,excludedA,NegAlphaP,NegAlphaA
       REAL Connect,single
@@ -44,6 +44,7 @@
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
       REAL*8 Np(sizeP),Na(sizeA),u(sizeT)
       REAL*8 hhA(sizeA),hhP(sizeP)
+      REAL*8 ggA(sizeA),ggP(sizeP)
       REAL*8 NestA,NestP,NestT
       REAL*8 AvA,AvP,VarA,VarP
 *     ...Commons 
@@ -78,7 +79,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
          alive(i)=.true.
       ENDDO
 
-*     --- Read/generate vectorial tmp.
+*     --- Read/generate vectors and matrices.
       tmp=1
       call ReadGenerateVec(unit,path,idum,Sp,tmp,readNp,midNp,widthNp,Np) ! Plant species abundances
       tmp=2
@@ -180,7 +181,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       REAL*8 rnd,ran2,scale
       REAL*8 X(Sx)
 
-      scale=widthX/2           ! Width scaling to use the modified ran2 function
+      scale=widthX           ! Width rescaling to use the modified ran2 function (no longer needed)
       IF(readX.eq.1)THEN        ! Read from file
          OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
          DO i=1,Sx
@@ -238,10 +239,10 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
                rnd=ran2(idum)        
                READ(unit(tmp),*) M(i,j)
                IF(i.eq.j)THEN
-                  scale=widthDiag/2
+                  scale=widthDiag
                   M(i,j)=M(i,j)*(1.0d0+rnd*scale)
                ELSE
-                  scale=widthOff/2
+                  scale=widthOff
                   M(i,j)=M(i,j)*(1.0d0+rnd*scale)
                ENDIF
                WRITE(unit(NfilesIn+tmp),*) M(i,j)
@@ -252,10 +253,10 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
             DO j=1,Sx
                rnd=ran2(idum)        
                IF(i.eq.j)THEN
-                  scale=widthDiag/2
+                  scale=widthDiag
                   M(i,j)=midDiag*(1.0d0+rnd*scale)
                ELSE
-                  scale=widthOff/2
+                  scale=widthOff
                   M(i,j)=minOff*(1.0d0+rnd*scale)
                ENDIF
                WRITE(unit(NfilesIn+tmp),*) M(i,j)
@@ -295,7 +296,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       REAL*8 rnd,ran2,scale
       REAL*8 M(Sx,Sy)
       
-      scale=widthM/2         
+      scale=widthM         
       IF(readM.eq.1)THEN  
          OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
          DO i=1,Sx
@@ -345,6 +346,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       INTEGER i,j,k,tmp
       REAL*8 rnd,Comp,Int,ran2
       REAL*8 HollingA(sizeA),HollingP(sizeP)
+      REAL*8 GollingA(sizeA),GollingP(sizeP)
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
 *     ...Commons
       REAL*8 midNp,widthNp,midNa,widthNa
@@ -371,12 +373,12 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
          GollingP(i)=0.0d0 ! New Holling term, a hybrid between Holling and Gollum
          IF(hhP(i).gt.0)THEN
             DO k=1,Sa
-               HollingP(i)=HollingP(i)+GammaP(i,k)*Na(k)
+               HollingP(i)=HollingP(i)+ABS(GammaP(i,k))*Na(k)
             ENDDO
          ENDIF
          IF(ggP(i).gt.0)THEN
             DO k=1,Sa
-               GollingP(i)=GollingP(i)+GammaA(k,i)*Na(k)
+               GollingP(i)=GollingP(i)+ABS(GammaA(k,i))*Na(k)
             ENDDO
          ENDIF
       ENDDO
@@ -385,12 +387,12 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
          GollingA(i)=0.0d0
          IF(hhA(i).gt.0)THEN
             DO k=1,Sp
-               HollingA(i)=HollingA(i)+GammaA(i,k)*Np(k)
+               HollingA(i)=HollingA(i)+ABS(GammaA(i,k))*Np(k)
             ENDDO
          ENDIF
          IF(ggA(i).gt.0)THEN
             DO k=1,Sp
-               GollingA(i)=GollingA(i)+GammaP(k,i)*Np(k)
+               GollingA(i)=GollingA(i)+ABS(GammaP(k,i))*Np(k)
             ENDDO
          ENDIF
       ENDDO          
@@ -406,7 +408,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
          DO k=1,Sa
             Int=Int+GammaP(i,k)*Na(k)/(f0P+hhP(i)*HollingP(i)+ggA(k)*GollingA(k))
          ENDDO         
-         AlphaP(i)=(Comp-Int)*(1+2*Delta*rnd) ! The rnd scaling factor is 2 here
+         AlphaP(i)=(Comp-Int)*(1+Delta*rnd) ! The rnd scaling factor is 2 here
 
          WRITE(unit(NfilesIn+tmp),*) AlphaP(i),Comp,Int
       ENDDO
@@ -422,7 +424,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
          DO k=1,Sp
             Int=Int+GammaA(i,k)*Np(k)/(f0A+hhA(i)*HollingA(i)+ggP(k)*GollingP(k))
          ENDDO         
-         AlphaA(i)=(Comp-Int)*(1+2*Delta*rnd) ! The rnd scaling factor is 2 here
+         AlphaA(i)=(Comp-Int)*(1+Delta*rnd) ! The rnd scaling factor is 2 here
          WRITE(unit(NfilesIn+tmp),*) AlphaA(i),Comp,Int
       ENDDO
       CLOSE(unit(NfilesIn+tmp))

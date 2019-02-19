@@ -3,8 +3,7 @@
 *     *********************************************                                                  
       
       SUBROUTINE Integration(Nfiles,unit,sizeA,sizeP,sizeT,BetaA,BetaP,
-     &GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,hhA,hhP,Dissipation,AvDissipation,
-     &DissRate,AvDissRate)
+     &GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,hhA,hhP,ggA,ggP)
       IMPLICIT NONE
       REAL*8 TOL,dt,TINY,Maxsteps,VERYTINY
       PARAMETER(TOL=1.0e-8,dt=10e-2,TINY=1.D-30,MaxSteps=1.e5,VERYTINY=1.D-90) ! Sometimes it is necessary to reduce dt, when the populations grow a lot
@@ -14,6 +13,7 @@
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
       REAL*8 Np(sizeP),Na(sizeA),u(sizeT)
       REAL*8 hhA(sizeA),hhP(sizeP)
+      REAL*8 ggA(sizeA),ggP(sizeP)
 *     This subroutine includes an integration loop calling to Runge Kutta
 *     routine until a tolerance (TOL) has been achieved. We plan to consider
 *     a fifth order Runge-Kutta version with adaptive stepside.
@@ -21,8 +21,7 @@
       REAL*8 t,h,htry,hdid,hnext,hmin
       REAL*8 umax,uscal(sizeT),u1(sizeT),dydx(sizeT)
       REAL*8 error,errorTmp,test,eps,SteadyError
-      REAL*8 Dissipation,DissRate,AvDissipation,AvDissRate
-      REAL*8 Diss(sizeT),Biomass
+      REAL*8 Biomass
 
       !PRINT *, '>> Into integration routine..'  
 
@@ -36,7 +35,6 @@
       hmin=TINY
       htry=dt
       eps=1.0e-10
-      DissRate=0
       Biomass=0
       error=1.0d0               ! Init error just to enter into the loop      
       Nsteps=0
@@ -51,7 +49,7 @@
       DO WHILE(error.gt.TOL)
          error=-1.0d0            ! Set to zero once into the loop, in order to look for maximum error
          call Derivatives(u,sizeA,sizeP,sizeT,BetaA,BetaP,
-     &     GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,dydx)
+     &     GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,ggA,ggP,dydx)
          DO i=1,sizeT          
 c$$$            IF(u(i).lt.VERYTINY)THEN ! I fix to zero here extincted species, comment this otherwise and...
 c$$$               u(i)=0.0d0
@@ -81,7 +79,6 @@ c$$$            IF(MOD(Nsteps-1,100).eq.0) WRITE(*,221) u1(i),u(i),test,error,hn
             IF(u(i).gt.umax) umax=u(i)
             IF(u(i).gt.TOL) Biomass=Biomass+u(i)
             IF(test.gt.error) error=test
-            DissRate=DissRate+dydx(i)
          ENDDO
          IF(hdid.eq.h)then
             nok=nok+1
@@ -119,9 +116,6 @@ c$$$            IF(MOD(Nsteps-1,100).eq.0) WRITE(*,221) u1(i),u(i),test,error,hn
             EXIT
          ENDIF
       ENDDO      
-      Dissipation=Dissipation+DissRate*Biomass
-      AvDissRate=DissRate/float(Nsteps)
-      AvDissipation=Dissipation/float(Nsteps)
 c      PRINT *,' -- Convergence achieved after ',Nsteps,' steps'
 c      PRINT *,' -- Tolerance/Error: ',TOL,error
 c      PRINT *, '<< Leaving Integration routine..'
@@ -358,7 +352,7 @@ c         PRINT *, x,xnew,h,errmax,' x,xnew,h,errmax DEBUG' ! Check this if you 
       ENDDO 
       x=xs+h
       call Derivatives(yn,sizeA,sizeP,nvar,BetaA,BetaP,
-     &     GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,yout)
+     &     GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,ggA,ggP,yout)
       h2=2.*h
       DO n=2,nstep ! General step.
          DO i=1,nvar
@@ -368,7 +362,7 @@ c         PRINT *, x,xnew,h,errmax,' x,xnew,h,errmax DEBUG' ! Check this if you 
          ENDDO          
          x=x+h
          call Derivatives(yn,sizeA,sizeP,nvar,BetaA,BetaP,
-     &     GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,yout)
+     &     GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,ggA,ggP,yout)
       ENDDO
       
       DO i=1,nvar ! Last step.                  
@@ -384,7 +378,7 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
 *     *********************************************                                                  
       
       SUBROUTINE Derivatives(u,sizeA,sizeP,sizeT,BetaA,BetaP,
-     &     GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,f)
+     &     GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,ggA,ggP,f)
       IMPLICIT NONE
       INTEGER sizeA,sizeP,sizeT,idum
       REAL*8 BetaA(sizeA,sizeA),BetaP(sizeP,sizeP)
@@ -392,9 +386,11 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
       REAL*8 u(sizeT)
       REAL*8 hhA(sizeA),hhP(sizeP)
+      REAL*8 ggA(sizeA),ggP(sizeP)
 *     Evaluates the ODEs for given values of the abundances at time t
       INTEGER i,j,k
       REAL*8 HollingA(sizeA),HollingP(sizeP)
+      REAL*8 GollingA(sizeA),GollingP(sizeP)
       REAL*8 f(sizeT),Comp,Int
 *     ...Commons
       REAL*8 midNp,widthNp,midNa,widthNa
@@ -421,12 +417,12 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
          GollingP(i)=0.0d0 ! New Holling term, a hybrid between Holling and Gollum
          IF(hhP(i).gt.0)THEN
             DO k=1,Sa
-               HollingP(i)=HollingP(i)+GammaP(i,k)*u(Sp+k)
+               HollingP(i)=HollingP(i)+ABS(GammaP(i,k))*u(Sp+k)
             ENDDO
          ENDIF
          IF(ggP(i).gt.0)THEN
             DO k=1,Sa
-               GollingP(i)=GollingP(i)+GammaA(k,i)*u(Sp+k)
+               GollingP(i)=GollingP(i)+ABS(GammaA(k,i))*u(Sp+k)
             ENDDO
          ENDIF
       ENDDO
@@ -435,12 +431,12 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
          GollingA(i)=0.0d0
          IF(hhA(i).gt.0)THEN
             DO k=1,Sp
-               HollingA(i)=HollingA(i)+GammaA(i,k)*u(k)
+               HollingA(i)=HollingA(i)+ABS(GammaA(i,k))*u(k)
             ENDDO
          ENDIF
          IF(ggA(i).gt.0)THEN
             DO k=1,Sp
-               GollingA(i)=GollingA(i)+GammaP(k,i)*u(k)
+               GollingA(i)=GollingA(i)+ABS(GammaP(k,i))*u(k)
             ENDDO
          ENDIF
       ENDDO

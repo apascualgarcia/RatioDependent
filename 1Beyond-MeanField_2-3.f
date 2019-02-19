@@ -45,7 +45,10 @@
 *                                                                 .. itime
 *                           .... Warning
 *
-*     ..... Pseudo_Main     .... Read_Generate_Inputs   ... ran2                                             ##(At 2Parameters.f)
+*     ..... Pseudo_Main     .... Read_Generate_Inputs                                                        ##(At 2Parameters.f)
+*                                                       ... ReadGenerateVec       
+*                                                       ... ReadGenerateTrixComp
+*                                                       ... ReadGenerateTrixInt
 *                                                       ... Topology       
 *                                                       ... Consistent_Alpha .. ran2 
 *
@@ -139,7 +142,6 @@
 *     This subroutine is just a trick to define dynamically
 *     the matrix sizes, as it is not possible to do it in the main program
 *     within the static paradigm of Fortran 77
-      REAL AdjA(sizeA,sizeP),AdjP(sizeP,sizeA)
       REAL degreeP(sizeP),degreeA(sizeA)
       INTEGER excludedA,excludedP,NegAlphaP,NegAlphaA
       REAL Connect,single
@@ -149,21 +151,20 @@
       REAL*8 Np(sizeP),Na(sizeA),u(sizeT)
       REAL*8 Dissipation,DissRate,AvDissipation,AvDissRate
       REAL*8 hhA(sizeA),hhP(sizeP)
+      REAL*8 ggA(sizeA),ggP(sizeP)
       REAL*8 AvA,AvP,VarA,VarP
 
       call Read_Generate_Inputs(path,Nfiles,NfilesIn,unit,today,now,seed,fixedPoint,
      &sizeA,sizeP,sizeT,readNp,readNa,readAlphaP,readAlphaA,
      &readBetaP,readBetaA,readGammaP,readGammaA,
      &readHp,readHa,readGp,readGa,BetaA,BetaP,GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,
-     &degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
-     &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,seedout,AvA,AvP,VarA,VarP)
+     &degreeP,degreeA,NestA,NestP,NestT,Connect,single,
+     &excludedP,excludedA,NegAlphaP,NegAlphaA,hhA,hhP,ggA,ggP,seedout,AvA,AvP,VarA,VarP)
       call Integration(Nfiles,unit,sizeA,sizeP,sizeT,BetaA,BetaP,
-     &GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,hhA,hhP,Dissipation,AvDissipation,
-     &DissRate,AvDissRate)
+     &GammaA,GammaP,Na,Np,u,AlphaA,AlphaP,hhA,hhP,ggA,ggP)
       call Output_Globals(unit,sizeA,sizeP,sizeT,BetaA,BetaP,GammaA,GammaP,Na,Np,
-     &u,AlphaA,AlphaP,degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
-     &Dissipation,AvDissipation,DissRate,AvDissRate,excludedP,excludedA,
-     &NegAlphaP,NegAlphaA,seedout,AvA,AvP,VarA,VarP)
+     &u,AlphaA,AlphaP,degreeP,degreeA,NestA,NestP,NestT,Connect,single,
+     &excludedP,excludedA,NegAlphaP,NegAlphaA,seedout,AvA,AvP,VarA,VarP)
 
       RETURN
       END
@@ -259,7 +260,8 @@ c      PRINT *, '  * Reading files from: ',Path0
       READ(69,*) readGa         ! One if you read from file, 0 if will be generated internally            
       READ(69,*) midGa          ! handling time for animals
       READ(69,*) widthGa        ! Width of the distribution
-      READ(69,*) f0             ! Scale of the saturating term
+      READ(69,*) f0P            ! Scale of the saturating term (plants)
+      READ(69,*) f0A            ! Scale of the saturating term (animals)      
       READ(69,*) Sp             ! Number of species of plants
       READ(69,*) Sa             ! of animals
       READ(69,*) Delta          ! Amplitude of the growth rates fluctuations
@@ -475,16 +477,14 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
 *     *********************************************                                                  
  
       SUBROUTINE Output_Globals(unit,sizeA,sizeP,sizeT,BetaA,BetaP,GammaA,GammaP,Na,Np,
-     &u,AlphaA,AlphaP,degreeP,degreeA,NestA,NestP,NestT,AdjA,AdjP,Connect,single,
-     &Dissipation,AvDissipation,DissRate,AvDissRate,excludedP,excludedA,
-     &NegAlphaP,NegAlphaA,seedout,AvA,AvP,VarA,VarP)
+     &u,AlphaA,AlphaP,degreeP,degreeA,NestA,NestP,NestT,Connect,single,
+     &excludedP,excludedA,NegAlphaP,NegAlphaA,seedout,AvA,AvP,VarA,VarP)
       IMPLICIT NONE
       REAL Thr
       PARAMETER(Thr=1e-8)
       INTEGER unit(30),i,j,k
       INTEGER sizeA,sizeP,sizeT
       REAL degreeP(sizeP),degreeA(sizeA)
-      REAL AdjA(sizeA,sizeP),AdjP(sizeP,sizeA)
       REAL single,SingleExtinct
       INTEGER excludedP,excludedA,NegAlphaP,NegAlphaA
       REAL Connect
@@ -494,8 +494,8 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
       REAL*8 AvA,AvP,VarA,VarP
       REAL*8 Np(sizeP),Na(sizeA),u(sizeT)
-      REAL*8 Dissipation,DissRate,AvDissipation,AvDissRate,seedout
-*     --- Writes a summary computing total biomass, dissipation and extinctions.
+      REAL*8 seedout
+*     --- Writes a summary computing total biomass and extinctions.
       LOGICAL alive(sizeT),key_i,key_j
       REAL degreePout(sizeP),degreeAout(sizeA)
       REAL*8 BiomassP,BiomassA,ExtinctP,ExtinctA
@@ -557,7 +557,7 @@ c      PRINT *, '  * The path for the output summary is: ',pathSummary
 c$$$      DO i=1,sizeP
 c$$$         PRINT *, i,alive(i),' debug alive inside i'
 c$$$      ENDDO
-      call Topology(sizeA,sizeP,sizeT,AdjP,AdjA,alive,degreePout,
+      call Topology(sizeA,sizeP,sizeT,GammaP,GammaA,alive,degreePout,
      &     degreeAout,NestPout,NestAout,NestTout,ConnectOut,
      &     singleOut,excludedPout,excludedAout)
       AvDegreeP=0
@@ -629,10 +629,6 @@ c$$$      ENDDO
       WRITE(61,*) 'excludedAout', excludedAout
       WRITE(61,*) 'NegAlphaP', NegAlphaP
       WRITE(61,*) 'NegAlphaA', NegAlphaA
-      WRITE(61,*) 'Dissipation',Dissipation
-      WRITE(61,*) 'AvDissipation',AvDissipation
-      WRITE(61,*) 'DissRate',DissRate
-      WRITE(61,*) 'AvDissRate',AvDissRate
       WRITE(61,*) 'AvAlphaP',AvP
       WRITE(61,*) 'VarAlphaP',VarP
       WRITE(61,*) 'AvAlphaA',AvA
@@ -641,11 +637,6 @@ c$$$      ENDDO
       WRITE(61,*) 'VarDegreeInP',VarDegreeP
       WRITE(61,*) 'AvDegreeInA',AvDegreeA
       WRITE(61,*) 'VarDegreeInA',VarDegreeA
-      WRITE(61,*) 'BiomassRate0',midNp
-      WRITE(61,*) 'MaxhP: ',hP
-      WRITE(61,*) 'MaxhA: ',hA
-      WRITE(61,*) 'MaxRhoP: ',rhoP
-      WRITE(61,*) 'MaxRhoA: ',rhoA
       WRITE(61,*) 'Seed: ',seedout
       WRITE(61,*) 'EntropyP ',ShannonP
       WRITE(61,*) 'EntropyA ',ShannonA
@@ -677,10 +668,6 @@ c$$$      PRINT *, '* excludedAin', excludedA
 c$$$      PRINT *, '* excludedAout', excludedAout
 c$$$      PRINT *, '* NegAlphaP', NegAlphaP
 c$$$      PRINT *, '* NegAlphaA', NegAlphaA
-c$$$      PRINT *, '* Dissipation',Dissipation
-c$$$      PRINT *, '* AvDissipation',AvDissipation
-c$$$      PRINT *, '* DissRate',DissRate
-c$$$      PRINT *, '* AvDissRate',AvDissRate
 c$$$      PRINT *, '*******************************'
 c$$$      PRINT *, ''
       RETURN
