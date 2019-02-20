@@ -30,8 +30,8 @@
          IF(u(i).gt.umax) umax=u(i)
       ENDDO
       t=0.01
-      WRITE(unit(Nfiles-1),222) t,(u(i),i=1,sizeP)
-      WRITE(unit(Nfiles),222) t,(u(sizeP+i),i=1,sizeA)
+      WRITE(unit(Nfiles-3),222) t,(u(i),i=1,sizeP)
+      WRITE(unit(Nfiles-2),222) t,(u(sizeP+i),i=1,sizeA)
       hmin=TINY
       htry=dt
       eps=1.0e-10
@@ -63,7 +63,7 @@ c            ENDIF
          ENDDO
          call bsstep(u,dydx,sizeT,t,htry,eps,uscal,
      &    sizeA,sizeP,BetaA,BetaP,GammaA,GammaP,
-     &    AlphaA,AlphaP,hhA,hhP,hdid,hnext)
+     &    AlphaA,AlphaP,hhA,hhP,ggA,ggP,hdid,hnext)
 
          Nsteps=Nsteps+1
          umax=0
@@ -90,10 +90,10 @@ c$$$            IF(MOD(Nsteps-1,100).eq.0) WRITE(*,221) u1(i),u(i),test,error,hn
      & than minimum in odeint'
             call wait()
          ENDIF
-         IF(MOD(Nsteps,100).eq.0)THEN
+         IF(MOD(Nsteps,50).eq.0)THEN
             PRINT *, ' -- ', Nsteps,error,errorTmp,ABS(errorTmp-error)
-            WRITE(unit(Nfiles-1),222) t,(u(i),i=1,sizeP) ! Check if this print format works
-            WRITE(unit(Nfiles),222) t,(u(sizeP+i),i=1,sizeA)
+            WRITE(unit(Nfiles-3),222) t,(u(i),i=1,sizeP) ! Check if this print format works
+            WRITE(unit(Nfiles-2),222) t,(u(sizeP+i),i=1,sizeA)
          ENDIF
          htry=hnext        
          IF(ABS(errorTmp-error).lt.eps)THEN
@@ -131,7 +131,7 @@ c      PRINT *, '<< Leaving Integration routine..'
   
       SUBROUTINE bsstep(y,dydx,nv,x,htry,eps,yscal,
      &    sizeA,sizeP,BetaA,BetaP,GammaA,GammaP,
-     &    AlphaA,AlphaP,hhA,hhP,hdid,hnext)
+     &    AlphaA,AlphaP,hhA,hhP,ggA,ggP,hdid,hnext)
       IMPLICIT NONE
       INTEGER nv,NMAX,KMAXX,IMAX
       REAL*8 eps,hdid,hnext,htry,x,dydx(nv),y(nv),yscal(nv)
@@ -143,6 +143,7 @@ c      PRINT *, '<< Leaving Integration routine..'
       REAL*8 GammaA(sizeA,sizeP),GammaP(sizeP,sizeA)
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
       REAL*8 hhA(sizeA),hhP(sizeP)
+      REAL*8 ggA(sizeA),ggP(sizeP)
 C     USES Derivatives,mmid,pzextr
 *     From Numerical Recipies chapters 16.4 and 16.3
 *     Bulirsch-Stoer step with monitoring of local truncation error to ensure accuracy and adjust
@@ -206,7 +207,7 @@ C     USES Derivatives,mmid,pzextr
             call wait()
          ENDIF
          call mmid(ysav,dydx,nv,x,h,nseq(k),sizeA,sizeP,BetaA,BetaP,
-     &        GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,yseq)
+     &        GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,ggA,ggP,yseq)
          xest=(h/nseq(k))**2    ! Squared, since error series is even.
          call pzextr(k,xest,yseq,y,yerr,nv) ! Perform extrapolation.
          IF(k.ne.1)THEN         ! Compute normalized error estimate epsilon(k).
@@ -328,7 +329,7 @@ c         PRINT *, x,xnew,h,errmax,' x,xnew,h,errmax DEBUG' ! Check this if you 
 *     *********************************************      
       
       SUBROUTINE mmid(y,dydx,nvar,xs,htot,nstep,sizeA,sizeP,BetaA,BetaP,
-     &        GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,yout)
+     &        GammaA,GammaP,AlphaA,AlphaP,hhA,hhP,ggA,ggP,yout)
       IMPLICIT NONE
       INTEGER nstep,nvar,NMAX
       INTEGER sizeA,sizeP
@@ -338,6 +339,7 @@ c         PRINT *, x,xnew,h,errmax,' x,xnew,h,errmax DEBUG' ! Check this if you 
       REAL*8 GammaA(sizeA,sizeP),GammaP(sizeP,sizeA)
       REAL*8 AlphaA(sizeA),AlphaP(sizeP)
       REAL*8 hhA(sizeA),hhP(sizeP)
+      REAL*8 ggA(sizeA),ggP(sizeP)
 *     Modified midpoint step. Dependent variable vector y(1:nvar) and its derivative vector
 *     dydx(1:nvar) are input at xs. Also input is htot, the total step to be made, and nstep,
 *     the number of substeps to be used. The output is returned as yout(1:nvar), which need
@@ -396,7 +398,7 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
       REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
       REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
-      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 midRhoP,widthRhoP,midRhoA,widthRhoA
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
@@ -409,7 +411,8 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp,f0P,f0A
+     &midGa,widthGa,midGp,widthGp,
+     &f0P,f0A,Delta
       COMMON/Species/ Sa,Sp
 
       DO i=1,Sp                 ! Compute first a Holling like term to saturate the ODEs
@@ -447,11 +450,9 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
          DO j=1,Sp
             Comp=Comp+BetaP(i,j)*u(j)
          ENDDO
-         IF(Gamma0.gt.0)THEN
-            DO k=1,Sa
-               Int=Int+GammaP(i,k)*u(Sp+k)/(f0P+hhP(i)*HollingP(i)+ggA(k)*GollingA(k))
-            ENDDO
-         ENDIF
+         DO k=1,Sa
+            Int=Int+GammaP(i,k)*u(Sp+k)/(f0P+hhP(i)*HollingP(i)+ggA(k)*GollingA(k))
+         ENDDO         
          f(i)=u(i)*(AlphaP(i)-Comp+Int)
       ENDDO
       DO i=1,Sa                 ! Compute first Holling term to saturate the ODEs
@@ -459,12 +460,10 @@ c         PRINT *,i,ym(i),yn(i),yout(i),' !debug'
          Int=0.0d0
          DO j=1,Sa
             Comp=Comp+BetaA(i,j)*u(Sp+j)
-         ENDDO
-         IF(Gamma0.gt.0)THEN
-            DO k=1,Sp
-               Int=Int+GammaA(i,k)*u(k)/(f0A+hhA(i)*HollingA(i)+ggP(k)*GollingP(k))
-            ENDDO
-         ENDIF
+         ENDDO         
+         DO k=1,Sp
+            Int=Int+GammaA(i,k)*u(k)/(f0A+hhA(i)*HollingA(i)+ggP(k)*GollingP(k))
+         ENDDO         
          f(Sp+i)=u(Sp+i)*(AlphaA(i)-Comp+Int)
       ENDDO
 

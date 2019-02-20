@@ -15,7 +15,8 @@
       INTEGER unit(30),Nfiles,NfilesIn
       INTEGER*4 today(3), now(3)
       CHARACTER*40 path(30)
-      REAL*8 seed,fixedPoint
+      REAL*8 seed
+      INTEGER fixedPoint
       INTEGER readNp,readNa,readAlphaP,readAlphaA
       INTEGER readBetaP,readBetaA
       INTEGER readGammaP,readGammaA
@@ -64,7 +65,8 @@
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp,f0P,f0A
+     &midGa,widthGa,midGp,widthGp,
+     &f0P,f0A,Delta
       COMMON/Species/ Sa,Sp
 
 *     --- Prepare random numbers and initialize the alive vector
@@ -249,8 +251,8 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
                   scale=widthOff
                   M(i,j)=M(i,j)*midOff*(1.0d0+rnd*scale)
                ENDIF
-               WRITE(unit(NfilesIn+tmp),*) M(i,j)
             ENDDO
+            WRITE(unit(NfilesIn+tmp),*) (M(i,j), j=1,Sx)
          ENDDO
       ELSE
          DO i=1,Sx
@@ -263,8 +265,8 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
                   scale=widthOff
                   M(i,j)=midOff*(1.0d0+rnd*scale)
                ENDIF
-               WRITE(unit(NfilesIn+tmp),*) M(i,j)
             ENDDO
+            WRITE(unit(NfilesIn+tmp),*) (M(i,j), j=1,Sx)
          ENDDO 
       ENDIF
       CLOSE(unit(NfilesIn+tmp))
@@ -310,16 +312,16 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
                rnd=ran2(idum)        
                READ(unit(tmp),*) M(i,j)
                M(i,j)=M(i,j)*midM*(1.0d0+rnd*scale)
-               WRITE(unit(NfilesIn+tmp),*) M(i,j)
             ENDDO
+            WRITE(unit(NfilesIn+tmp),*) (M(i,j), j=1,Sx)
          ENDDO
       ELSE
          DO i=1,Sx
             DO j=1,Sy
                rnd=ran2(idum)        
-               M(i,j)=midM*(1.0d0+rnd*scale)
-               WRITE(unit(NfilesIn+tmp),*) M(i,j)
+               M(i,j)=midM*(1.0d0+rnd*scale)              
             ENDDO
+            WRITE(unit(NfilesIn+tmp),*) (M(i,j), j=1,Sx)
          ENDDO 
       ENDIF
       CLOSE(unit(NfilesIn+tmp))
@@ -371,7 +373,8 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
      &midRhoP,widthRhoP,midRhoA,widthRhoA,
      &midGammaP,widthGammaP,midGammaA,widthGammaA,
      &midHa,widthHa,midHp,widthHp,
-     &midGa,widthGa,midGp,widthGp,f0P,f0A
+     &midGa,widthGa,midGp,widthGp,
+     &f0P,f0A,Delta
       COMMON/Species/ Sa,Sp
       
       DO i=1,Sp                 ! Compute first a Holling like term to saturate the ODEs
@@ -414,7 +417,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
          DO k=1,Sa
             Int=Int+GammaP(i,k)*Na(k)/(f0P+hhP(i)*HollingP(i)+ggA(k)*GollingA(k))
          ENDDO         
-         AlphaP(i)=(Comp-Int)*(1+Delta*rnd) ! The rnd scaling factor is 2 here
+         AlphaP(i)=(Comp-Int)*(1+2*Delta*rnd) ! The rnd scaling factor is 2 here
 
          WRITE(unit(NfilesIn+tmp),*) AlphaP(i),Comp,Int
       ENDDO
@@ -430,7 +433,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
          DO k=1,Sp
             Int=Int+GammaA(i,k)*Np(k)/(f0A+hhA(i)*HollingA(i)+ggP(k)*GollingP(k))
          ENDDO         
-         AlphaA(i)=(Comp-Int)*(1+Delta*rnd) ! The rnd scaling factor is 2 here
+         AlphaA(i)=(Comp-Int)*(1+2*Delta*rnd) ! The rnd scaling factor is 2 here
          WRITE(unit(NfilesIn+tmp),*) AlphaA(i),Comp,Int
       ENDDO
       CLOSE(unit(NfilesIn+tmp))
