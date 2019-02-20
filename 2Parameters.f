@@ -51,7 +51,7 @@
       REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
       REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
-      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 midRhoP,widthRhoP,midRhoA,widthRhoA
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
@@ -81,35 +81,35 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 
 *     --- Read/generate vectors and matrices.
       tmp=1
-      call ReadGenerateVec(unit,path,idum,Sp,tmp,readNp,midNp,widthNp,Np) ! Plant species abundances
+      call ReadGenerateVec(unit,NfilesIn,path,idum,Sp,tmp,readNp,midNp,widthNp,Np) ! Plant species abundances
       tmp=2
-      call ReadGenerateVec(unit,path,idum,Sa,tmp,readNa,midNa,widthNa,Na) ! Animal species abundances
+      call ReadGenerateVec(unit,NfilesIn,path,idum,Sa,tmp,readNa,midNa,widthNa,Na) ! Animal species abundances
       tmp=9
-      call ReadGenerateVec(unit,path,idum,Sp,tmp,readHp,midHp,widthHp,hhP) ! handling times opposite pool abundances
+      call ReadGenerateVec(unit,NfilesIn,path,idum,Sp,tmp,readHp,midHp,widthHp,hhP) ! handling times opposite pool abundances
       tmp=10
-      call ReadGenerateVec(unit,path,idum,Sa,tmp,readHa,midHa,widthHa,hhA)
+      call ReadGenerateVec(unit,NfilesIn,path,idum,Sa,tmp,readHa,midHa,widthHa,hhA)
       tmp=11
-      call ReadGenerateVec(unit,path,idum,Sp,tmp,readGp,midGp,widthGp,ggP) ! handling times same pool abundances
+      call ReadGenerateVec(unit,NfilesIn,path,idum,Sp,tmp,readGp,midGp,widthGp,ggP) ! handling times same pool abundances
       tmp=12
-      call ReadGenerateVec(unit,path,idum,Sa,tmp,readGa,midGa,widthNGa,ggA)
+      call ReadGenerateVec(unit,NfilesIn,path,idum,Sa,tmp,readGa,midGa,widthGa,ggA)
       tmp=3
-      call ReadGenerateTrixComp(unit,path,idum,Sp,tmp,readBetaP,midBetaP,midRhoP, ! Competition matrix, plants
+      call ReadGenerateTrixComp(unit,NfilesIn,path,idum,Sp,tmp,readBetaP,midBetaP,midRhoP, ! Competition matrix, plants
      &widthBetaP,widthRhoP,BetaP)
       tmp=4
-      call ReadGenerateTrixComp(unit,path,idum,Sa,tmp,readBetaA,midBetaA,midRhoA, ! Competition matrix, animals
+      call ReadGenerateTrixComp(unit,NfilesIn,path,idum,Sa,tmp,readBetaA,midBetaA,midRhoA, ! Competition matrix, animals
      &widthBetaA,widthRhoA,BetaA)
       tmp=5
-      call ReadGenerateTrixInt(unit,path,idum,Sp,Sa,tmp,readGammaP,midGammaP, ! Coupling matrix, plants
+      call ReadGenerateTrixInt(unit,NfilesIn,path,idum,Sp,Sa,tmp,readGammaP,midGammaP, ! Coupling matrix, plants
      &widthGammaP,GammaP)
       tmp=6
-      call ReadGenerateTrixInt(unit,path,idum,Sa,Sp,tmp,readGammaA,midGammaA, ! Coupling matrix, animals
+      call ReadGenerateTrixInt(unit,NfilesIn,path,idum,Sa,Sp,tmp,readGammaA,midGammaA, ! Coupling matrix, animals
      &widthGammaA,GammaA)                     
       IF(fixedPoint .eq. 0)THEN ! Read or generate values for bare productivities
          tmp=7
-         call ReadGenerateVec(unit,path,idum,Sp,tmp,readAlphaP,midAlphaP, ! Plants
+         call ReadGenerateVec(unit,NfilesIn,path,idum,Sp,tmp,readAlphaP,midAlphaP, ! Plants
      &widthAlphaP,AlphaP)
          tmp=8
-         call ReadGenerateVec(unit,path,idum,Sa,tmp,readAlphaA,midAlphaA, ! Animals
+         call ReadGenerateVec(unit,NfilesIn,path,idum,Sa,tmp,readAlphaA,midAlphaA, ! Animals
      &widthAlphaA,AlphaA)
       ELSE
          ! Note that tmp=7,8 should be fixed within the subroutine
@@ -164,12 +164,13 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     SUBROUTINE ReadGenerateVec
 *     *********************************************                                                  
  
-      SUBROUTINE ReadGenerateVec(unit,path,idum,Sx,tmp,readX,midX,widthX,X)
+      SUBROUTINE ReadGenerateVec(unit,NfilesIn,path,idum,Sx,tmp,readX,midX,widthX,X)
       IMPLICIT NONE
-      INTEGER unit(30),idum
+      INTEGER unit(30),NfilesIn
+      INTEGER*8 idum
       CHARACTER*40 path(30)
-      INTEGER Sx,tmp
-      REAL*8 midX,widthX,readX
+      INTEGER Sx,tmp,readX
+      REAL*8 midX,widthX
 *     This routine either reads a vector from file
 *     identified by unit tmp, or it generates a random
 *     one with cells following uniform distribution
@@ -180,14 +181,15 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     at the value read. Then it  writes the vector in a new file and then returns it.      
       REAL*8 rnd,ran2,scale
       REAL*8 X(Sx)
-
+      INTEGER i
+      
       scale=widthX           ! Width rescaling to use the modified ran2 function (no longer needed)
       IF(readX.eq.1)THEN        ! Read from file
          OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
          DO i=1,Sx
             rnd=ran2(idum)
             READ(unit(tmp),*) X(i)
-            X(i)=X(i)*(1+rnd*scale)
+            X(i)=X(i)*midX*(1+rnd*scale)
             WRITE(unit(NfilesIn+tmp),*) X(i)
          ENDDO
       ELSE                      ! Generate parameters
@@ -210,10 +212,11 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     SUBROUTINE ReadGenerateTrixComp
 *     *********************************************                                                  
  
-      SUBROUTINE ReadGenerateTrixComp(unit,path,idum,Sx,tmp,readM,midDiag,
-     &readOff,midOff,widthDiag,widthOff,M)
+      SUBROUTINE ReadGenerateTrixComp(unit,NfilesIn,path,idum,Sx,tmp,readM,midDiag,
+     &midOff,widthDiag,widthOff,M)
       IMPLICIT NONE
-      INTEGER unit(30),idum
+      INTEGER unit(30),NfilesIn
+      INTEGER*8 idum
       CHARACTER*40 path(30)
       INTEGER Sx,tmp,readM
       REAL*8 midDiag,widthDiag,midOff,widthOff
@@ -231,7 +234,8 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     while that ReadGenerateTrixInt considers a rectangular matrix with two param.
       REAL*8 rnd,ran2,scale
       REAL*8 M(Sx,Sx)
-          
+      INTEGER i,j
+   
       IF(readM.eq.1)THEN  
          OPEN(UNIT=unit(tmp),STATUS='OLD',ERR=770,FILE=path(tmp))
          DO i=1,Sx
@@ -240,10 +244,10 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
                READ(unit(tmp),*) M(i,j)
                IF(i.eq.j)THEN
                   scale=widthDiag
-                  M(i,j)=M(i,j)*(1.0d0+rnd*scale)
+                  M(i,j)=M(i,j)*midDiag*(1.0d0+rnd*scale)
                ELSE
                   scale=widthOff
-                  M(i,j)=M(i,j)*(1.0d0+rnd*scale)
+                  M(i,j)=M(i,j)*midOff*(1.0d0+rnd*scale)
                ENDIF
                WRITE(unit(NfilesIn+tmp),*) M(i,j)
             ENDDO
@@ -257,7 +261,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
                   M(i,j)=midDiag*(1.0d0+rnd*scale)
                ELSE
                   scale=widthOff
-                  M(i,j)=minOff*(1.0d0+rnd*scale)
+                  M(i,j)=midOff*(1.0d0+rnd*scale)
                ENDIF
                WRITE(unit(NfilesIn+tmp),*) M(i,j)
             ENDDO
@@ -275,10 +279,11 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     SUBROUTINE ReadGenerateTrixInt
 *     *********************************************                                                  
  
-      SUBROUTINE ReadGenerateTrixInt(unit,path,idum,Sx,Sy,tmp,readM,midM,
+      SUBROUTINE ReadGenerateTrixInt(unit,NfilesIn,path,idum,Sx,Sy,tmp,readM,midM,
      &     widthM,M)
       IMPLICIT NONE
-      INTEGER unit(30),idum
+      INTEGER unit(30),NfilesIn
+      INTEGER*8 idum
       CHARACTER*40 path(30)
       INTEGER Sx,Sy,tmp,readM
       REAL*8 midM,widthM
@@ -295,6 +300,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
 *     while that ReadGenerateTrixInt considers a rectangular matrix with two param.
       REAL*8 rnd,ran2,scale
       REAL*8 M(Sx,Sy)
+      INTEGER i,j
       
       scale=widthM         
       IF(readM.eq.1)THEN  
@@ -303,7 +309,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
             DO j=1,Sy
                rnd=ran2(idum)        
                READ(unit(tmp),*) M(i,j)
-               M(i,j)=M(i,j)*(1.0d0+rnd*scale)
+               M(i,j)=M(i,j)*midM*(1.0d0+rnd*scale)
                WRITE(unit(NfilesIn+tmp),*) M(i,j)
             ENDDO
          ENDDO
@@ -352,7 +358,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
       REAL*8 midNp,widthNp,midNa,widthNa
       REAL*8 midAlphaP,widthAlphaP,midAlphaA,widthAlphaA
       REAL*8 midBetaP,widthBetaP,midBetaA,widthBetaA
-      REAL*8 rhoP,widthRhoP,rhoA,widthRhoA
+      REAL*8 midRhoP,widthRhoP,midRhoA,widthRhoA
       REAL*8 midGammaP,widthGammaP,midGammaA,widthGammaA
       REAL*8 midHp,widthHp,midHa,widthHa
       REAL*8 midGa,widthGa,midGp,widthGp
@@ -440,7 +446,7 @@ c      seed=float(Now(3))**2*float(Now(2))+float(Now(1)) ! -(Seconds**2*Minutes+
      &degreeA,NestP,NestA,NestT,Connect,single,excludedP,excludedA)
       IMPLICIT NONE
       INTEGER sizeA,sizeP,sizeT
-      REAL AdjA(sizeA,sizeP),AdjP(sizeP,sizeA)
+      REAL*8 AdjA(sizeA,sizeP),AdjP(sizeP,sizeA)
       LOGICAL alive(sizeT)
 *     This subroutine computes some topological properties. It has as input the
 *     adjacency matrices for plants and animals and a logical array (alive) which
