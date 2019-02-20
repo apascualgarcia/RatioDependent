@@ -31,6 +31,6 @@ $(FILE2).o: $(FILE2).f
 $(FILE3).o: $(FILE3).f
 	$(FC) -c $(FFLAGS) $(FILE3).f
 #Cleaning everything
-clean:
-	rm $(FILESOURCE)
+#clean:
+#	rm $(FILESOURCE)
 # End of the makefile
