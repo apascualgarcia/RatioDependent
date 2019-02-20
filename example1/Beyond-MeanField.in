@@ -1,0 +1,48 @@
+0 * readNp ! Control parameter for plants abundances, it is equal to 1 if you read Np from file, 0 if it will be generated internally, in which case:
+1 * midNp ! It will generate the parameter with a distribution of plant densities Np=midNp *(1+ widthNp *rnd) where rnd = [-0.5,0.5]
+0.15 * widthNp ! Note that these two parameters must be given even if readNp=1
+0 * readNa ! Same for animal densities 
+1 * midNa ! 
+0.15 * widthNa ! 
+0 * readAlphaP ! Plants growth rates (read or generate?)
+1 * midAlphaP ! 
+0.15 * widthAlphaP !
+0 * readAlphaA ! Animals growth rates
+1 * midAlphaA ! 
+0.15 * widthAlphaA
+0 * readBetaP ! Sp x Sp competition between plants, equal to 1 if the matrix is readed from file, otherwise:
+1 * midBetaP ! First parameter to generate the intraspecific competition for plants (diagonal terms)
+0.15 * widthBetaP ! Width of the distribution, again: BetaP=midBetaP *(1+ widthBetaP *rnd)
+0.05 * midRhoP ! Second parameter to generate the interespecific competition for animals (off-diagonal terms)
+0.15 * widthRhoP ! Width of the distribution
+0 * readBetaA ! Same for for competition between animals
+1 * midBetaA ! Intraspecific competition for animals
+0.15 * widthBetaA ! Width of the distribution
+0.05 * midRhoA ! interspecific competition (animals)
+0.15 * widthRhoA ! Width of the distribution
+0 * readGammaP ! Sp x Sa interaction between the pool of plants and the pool of animals, equal to 1 if the matrix is readed from file, otherwise:
+0.05 * midGammaP ! Generate a matrix with cells given by GammaP=midGammaP *(1+ widthGammaP *rnd)
+0.15 * widthGammaP !
+0 * readGammaA ! Same for the interaction between animals and plans
+0.05 * midGammaA ! 
+0.15 * widthGammaA !
+0 * readHp ! Sp x 1, vector of handling time for plants. Set to 1 if you read from file, 0 if must be generated internally with
+0.1  * midHp ! Hp=midHp *(1+ widthHp *rnd) 
+0.15  * widthHp ! 
+0  * readHa ! Sa x 1 vector of handling time for animals.
+0.1  * midHa ! 
+0.15  * widthHa !
+0  * readGp ! Sp x 1, second kind of vector of handling time for plants. Set to 1 if you read from file, 0 if must be generated internally with
+0  * midGp ! 
+0  * widthGp ! 
+0  * readGa ! Sa x 1, vector of handling time for animals
+0  * midGa ! 
+0  * widthGa ! 
+1  * f0P ! Scale of the saturating term (real number, plants)
+1  * f0A ! Scale of the saturating term (real number, animals)
+50  * Sp ! Number of species of plants
+50  * Sa ! of animals
+0.8  * Delta ! Amplitude of the growth rates fluctuations  AlphaA(i)=(Comp-Int)*(1+Delta*rnd) 
+1  * fixedPoint ! Should the growth rates (Alpha) estimated from the rest of the model at the fixed point? (=1) or not (=0). This option will overide above parameters for Alpha. 
+Summary-Beyond-MeanField.dat      ! A name file for the output summary
+20022019  * seed           ! An input seed for random nu
