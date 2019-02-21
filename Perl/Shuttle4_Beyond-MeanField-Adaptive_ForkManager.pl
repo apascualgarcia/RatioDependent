@@ -23,12 +23,12 @@ use Parallel::ForkManager; # libraries to manage fork.
 
 $Sp=50;	# Species number (Plants)
 $Sa=50;	# Species number (Animals)
-$Nrnd=10;   # Number of realizations (calls to F77), for each set of parameters.
+$Nrnd=500;   # Number of realizations (calls to F77), for each set of parameters.
 
 # -- Variable parameters
 # .... Set here the variable you want to explore dynamically, and the values for Delta
 
-@Delta=(0.1,0.25,0.5); # Fix here the values you want to explore for Delta
+@Delta=(0.1,0.25,0.5,0.75); # Fix here the values you want to explore for Delta
 
 # .... Possible variables to explore dynamically are "midGamma","midRho","midBeta","midH" and "midG".
 # .... Note that the same value will be given for plants and animals.
@@ -91,7 +91,7 @@ $outTmp='Summary_Beyond-MeanField.tmp';	# Path for the output summary matrix
 # -- Parameters to control processors
 
 $Nproc=`grep -c proc /proc/cpuinfo`; # Get the number of free processors of your computer, set to one if running sequentially (in a cluster with queues for instance)
-$threads=4; #$Nproc;   # Number of threads it will use for running FORTRAN. You can fix it to the maximum available ($Nproc) or to a fixed number.
+$threads=$Nproc;   # Number of threads it will use for running FORTRAN. You can fix it to the maximum available ($Nproc) or to a fixed number.
 
 ####### STOP EDITING HERE  ##########
 
@@ -105,11 +105,11 @@ if(($readNp==1)||($readNa==1)||($readBetaP==1)||($readBetaA==1)||($readGammaP==1
 
 # --- Some reordering, taking sizes and fixing files that will be used
 my $max = ($Sp, $Sa)[$Sp < $Sa];
-$degreePtmp='plantsOut-Final.out'; # From these files we will get the degrees, to compute the probability of extinction as a function of the degree
-$degreeAtmp='animalsOut-Final.out';
+$degreePtmp='plantsOut-Final.dat'; # From these files we will get the degrees, to compute the probability of extinction as a function of the degree
+$degreeAtmp='animalsOut-Final.dat';
 $length1=@selectValues;
 $length2=@Delta;
-for($k=0;$k<= $max;$k++){$DegVec[$k]=0;} # Initialize the counter for extincted species as a function of degre
+for($k=0;$k<= $max;$k++){$DegVec[$k]=0;} # Initialize the counter for extincted species as a function of degree
 $ThrExt=1e-08; # Biomass lower bound to consider an specie extincted
 $Init=1; # Identifier of the first realization
 
@@ -117,7 +117,7 @@ $Init=1; # Identifier of the first realization
 
 $fileReadIn = 'Beyond-MeanField.in'; # The input file must be edit at each step
 $fileout2 = 'Summary-Ensemble_Beyond-MeanField_'.$Set.'_'.$param.'.dat'; # This is the output file
-$fileout3 = 'DevfromPureComp_Beyond-MeanField_'.$Set.'_'.$param.'.dat';
+$fileout3 = 'DevfromRefSimulation_Beyond-MeanField_'.$Set.'_'.$param.'.dat';
 $fileout4 = 'ProbExtinctDegrees_Beyond-MeanField_'.$Set.'_'.$param.'.dat';
 
 $Handle[0]=*HANDLE2; $Handle[1]=*HANDLE3; $Handle[2]=*HANDLE4;
@@ -150,8 +150,8 @@ for($i=0;$i<=2;$i++) # for each output file
     print $file '# >> COMMON PARAMETERS:', "\n";
     print $file '# Population densities plants, readed from file?(=1): ',$readNp,'; midNp: ',$midNp,'; widthNp: ',$widthNp,"\n";
     print $file '# Population densities animals, readed from file?(=1): ',$readNa,'; midNa: ',$midNa,'; widthNa: ',$widthNa,"\n";
-    print $file '# Growth rates plants, estimated at fixed point?(=1)',$fixedPoint,'readed from file?(=1): ',$readAlphaP,'; midNp: ',$midAlphaP,'; widthNp: ',$widthAlphaP,"\n";
-    print $file '# Growth rates animals, estimated at fixed point?(=1)',$fixedPoint,'readed from file?(=1): ',$readAlphaA,'; midAlphaA: ',$midAlphaA,'; widthAlphaA: ',$widthAlphaA,"\n";
+    print $file '# Growth rates plants, estimated at fixed point?(=1): ',$fixedPoint,'; readed from file?(=1): ',$readAlphaP,'; midNp: ',$midAlphaP,'; widthNp: ',$widthAlphaP,"\n";
+    print $file '# Growth rates animals, estimated at fixed point?(=1): ',$fixedPoint,'; readed from file?(=1): ',$readAlphaA,'; midAlphaA: ',$midAlphaA,'; widthAlphaA: ',$widthAlphaA,"\n";
     print $file '# Beta parameter plants, readed from file?(=1): ',$readBetaP,'; midBetaP: ',$midBetaP,'; widthBetaP: ',$widthBetaP,"\n";
     print $file '# Beta parameter animals, readed from file?(=1): ',$readBetaA,'; midBetaA: ',$midBetaA,'; widthBetaA: ',$widthBetaA,"\n";
     print $file '# Rho parameter plants, readed from file?(=1): ',$readBetaP,'; midRhoP: ',$midRhoP,'; widthRhoP: ',$widthRhoP,"\n";
@@ -166,14 +166,15 @@ for($i=0;$i<=2;$i++) # for each output file
     print $file '# Species number (Animals): ',$Sa,"\n";
     print $file '# Path for the output summary matrix: ',$outTmp,"\n";
     print $file '# Number of realizations for each set of parameters: ', $Nrnd,"\n";
-    print $file '# Values for the Delta parameter: ',@Delta,"\n";
-    print $file '# Values for the ',$selectVar,' parameter: ',@selectValues,"\n";
+    print $file '# Values for the Delta parameter: ',join("; ",@Delta),"\n";
+    print $file '# Values for the ',$selectVar,' parameter: ',join("; ",@selectValues),"\n";
 
 }
 
 # -- MAIN ROUTINE
 
 
+srand(); # Changes the seed every time you run the script, comment if you want to reproduce results.
 for($i=0;$i<=$length1-1;$i++)    
 {
     if($selectVar eq "midGamma"){
@@ -198,16 +199,16 @@ for($i=0;$i<=$length1-1;$i++)
 	my $pm = new Parallel::ForkManager($threads); # Set a new environment to start to run different threads
 	for($m=$Init;$m<=$Nrnd;$m++) # For each matrix you compute the score
 	{
+	    my $random = rand();
 	    $pm->start and next; # Start the threads
 	    # Create input file for F77 program
 	    
 	    $dir='dir_tmp'.$m; # Create directories to generate different .in files for FORTRAN calls
-	    if(($i == 0)&&($j == 0)){`mkdir $dir`;}
+	    if(($i == 0)&&($j == 0)){`mkdir  $dir`;}
 	    if($controlFiles==1){
 		system("cp *In*.dat $dir"); # Copy input files if you are gonna use them
 	    }
 	    chdir $dir; # Call to FORTRAN binary where the .in files are
-	    my $random = rand();
 	    
             # Edit the .in file for FORTRAN
 	    open(HANDLE1, ">$fileReadIn") || die "Couldn't open file $fileReadIn";
@@ -270,9 +271,10 @@ for($i=0;$i<=$length1-1;$i++)
 	    $pm->finish; # End of threads  
 	}
 	$pm->wait_all_children; # Wait until all the randomizations are finished
-	for($m=$Init;$m<=$Nrnd;$m++) # For each matrix you compute the score
+	#exit; # DEBUG
+	for($m=$Init;$m<=$Nrnd;$m++) # For each realization
 	{
-	    $dir='dir_tmp'.$m;
+	    $dir='dir_tmp'.$m; # Go the directory to recover results
 	    chdir $dir;
 	    # Store values in variables
 	    open(HANDLEtmp, $outTmp)|| die "Couldn't open file $outTmp";
@@ -282,10 +284,11 @@ for($i=0;$i<=$length1-1;$i++)
 	    {
 		if($line =~ /#/){next;}
 		@fields=split(/\s+/,$line);
-		$Id=$field[1];
-		$Value=$field[2];
+		$Id=$fields[1];
+		$Value=$fields[2];
 		$l=$l+1;	      
-		#print $m,' m ',$k,' k ', $fields[1],'--',$Value,"\n"; #debug
+		#print $m,' m ',$k,' k ', $fields[0],'--',$fields[1],'--',$Value,"\n"; #debug
+		#exit; #debug
 		#if($l < 17){next;}else{$k=$k+1;} # There are 15 input parameters we are not interested in
 		if(($i == 0)&&($j == 0)&&($m == $Init)){
 		    if($Id eq "NestednessPin"){
@@ -306,23 +309,23 @@ for($i=0;$i<=$length1-1;$i++)
 			$AvDegreeA=$Value;
 		    }elsif($Id eq "VarDegreeInA"){			
 			$VarDegreeA=$Value;
-		    }
-		    # Now that you have information common to all simulations, finish the headers
-		    for($ii=0;$ii<=2;$ii++){ 
-			$file=$Handle[$ii];
-			print $file '# Input nestedness for plants: ',$NestednessP,"\n";
-			print $file '# Input nestedness for animals: ',$NestednessA,"\n";
-			print $file '# Input total nestedness: ',$NestednessT,"\n";
-			print $file '# Input connectance: ',$Connectance,"\n";
-			print $file '# Average degree for plants: ',$AvDegreeP,"\n";
-			print $file '# Variance degree for plants: ',$VarDegreeP,"\n";
-			print $file '# Average degree for animals: ',$AvDegreeA,"\n";
-			print $file '# Variance degree for animals: ',$VarDegreeA,"\n";
-			print $file '# Number of starting singletons: ',$Singles,"\n";
-			if($ii ==1){ # for the first file $i == 0, we will introduce this information later, because there are some previous measures to compute and include.			     
-			    print $file '#1',$selectVar,' 2Delta, 3dBioP, 4Err_dBioP, 5dBioA, 6Err_dBioA, 7dSp, 8Err_dSp, 9dSa, 10Err_dSa, 11dSpRel, 12Err_dSpRel, 13dSaRel, 14Err_dSaRel, 15dSrel, 16Err_dSrel, 17dNestOutP, 18Err_dNestOutP, 19dNestOutA, 20Err_dNestOutA, 21dNestOutT, 22Err_dNestOutT, 23dConnectOut, 24Err_dConnectOut, 25dSinglesOut, 26Err_dSinglesOut, 27dSinglesExtinct, 28Err_dSinglesExtinct, 29dExcludeP, 30Err_dExcludeP, 31dExcludeA, 32Err_dExcludeA, 33dDiss, 34Err_dDiss, 35dAvDiss, 36Err_dAvDiss, 37dDissRate, 38Err_dDissRate, 39dAvDissRate, 40Err_dAvDissRate', "\n";
-			}elsif($ii==2){			     
-			    print $file '#1',$selectVar,' 2Delta, 3Degree, 4ProbExtinction', "\n";
+			# Now that you have information common to all simulations, finish the headers
+			for($ii=0;$ii<=2;$ii++){ 
+			    $file=$Handle[$ii];
+			    print $file '# Input nestedness for plants: ',$NestednessP,"\n";
+			    print $file '# Input nestedness for animals: ',$NestednessA,"\n";
+			    print $file '# Input total nestedness: ',$NestednessT,"\n";
+			    print $file '# Input connectance: ',$Connectance,"\n";
+			    print $file '# Average degree for plants: ',$AvDegreeP,"\n";
+			    print $file '# Variance degree for plants: ',$VarDegreeP,"\n";
+			    print $file '# Average degree for animals: ',$AvDegreeA,"\n";
+			    print $file '# Variance degree for animals: ',$VarDegreeA,"\n";
+			    print $file '# Number of starting singletons: ',$Singles,"\n";
+			    if($ii ==1){ # for the first file $i == 0, we will introduce this information later, because there are some previous measures to compute and include.			     
+				print $file '#1',$selectVar,' 2Delta, 3dBioP, 4Err_dBioP, 5dBioA, 6Err_dBioA, 7dSp, 8Err_dSp, 9dSa, 10Err_dSa, 11dSpRel, 12Err_dSpRel, 13dSaRel, 14Err_dSaRel, 15dSrel, 16Err_dSrel, 17dNestOutP, 18Err_dNestOutP, 19dNestOutA, 20Err_dNestOutA, 21dNestOutT, 22Err_dNestOutT, 23dConnectOut, 24Err_dConnectOut, 25dSinglesOut, 26Err_dSinglesOut, 27dSinglesExtinct, 28Err_dSinglesExtinct, 29dExcludeP, 30Err_dExcludeP, 31dExcludeA, 32Err_dExcludeA', "\n";
+			    }elsif($ii==2){			     
+				print $file '#1',$selectVar,' 2Delta, 3Degree, 4ProbExtinction(degree), 5TotalExtinctions', "\n";
+			    }
 			}
 		    }
 		} # end of if(($i == 0)&&($j == 0))&&($m == $Init))
@@ -459,38 +462,46 @@ for($i=0;$i<=$length1-1;$i++)
 		    }else{
 			$entropyA[$i][$j]+=$Value; $StdvEntropyA[$i][$j]+=$Value**2;
 		    }
-		}else{next;}	
-		close(HANDLEtmp);
-		# Relate the extinctions with the degrees
-		open(HANDLEtmp, $degreePtmp)|| die "Couldn't open file $degreePtmp";	    
-		while($line=<HANDLEtmp>)
-		{
-		    if($line =~ /#/){next;}
-		    @fields=split(/\s+/,$line);
-		    $BioTmp=$fields[2]; $DegTmp=$fields[3];
-		    if($BioTmp < $ThrExt){$DegVec[$DegTmp]+=1;}
-		}
-		close(HANDLEtmp);
-		open(HANDLEtmp, $degreeAtmp)|| die "Couldn't open file $degreeAtmp";	    
-		while($line=<HANDLEtmp>)
-		{
-		    if($line =~ /#/){next;}
-		    @fields=split(/\s+/,$line);
-		    $BioTmp=$fields[2]; $DegTmp=$fields[3];
-		    if($BioTmp < $ThrExt){$DegVec[$DegTmp]+=1;}
-		}
-		close(HANDLEtmp);
-		`rm -f  $outTmp *.out *.in`;
-		chdir "..";
+		}else{next;}
 	    } #end while($line=<HANDLEtmp>)
+	    close(HANDLEtmp);
+	    #exit; #debug
+
+	    # Relate the extinctions with the degrees
+	    open(HANDLEtmp, $degreePtmp)|| die "Couldn't open file $degreePtmp";	    
+	    while($line=<HANDLEtmp>)
+	    {
+		if($line =~ /#/){next;}
+		@fields=split(/\s+/,$line);
+		$BioTmp=$fields[3]; $DegTmp=$fields[5];
+		#print join(" ",$fields[0],'0',$fields[1],'1',$fields[2],'2',$fields[3],'3',,$fields[4],'4',$fields[5],'5','DEBUG0'),"\n";
+		if($BioTmp < $ThrExt){$DegVec[$DegTmp]+=1;}
+	    }
+	    #exit; # debug
+	    close(HANDLEtmp);
+	    open(HANDLEtmp, $degreeAtmp)|| die "Couldn't open file $degreeAtmp";	    
+	    while($line=<HANDLEtmp>)
+	    {
+		if($line =~ /#/){next;}
+		@fields=split(/\s+/,$line);
+		$BioTmp=$fields[3]; $DegTmp=$fields[5];
+		if($BioTmp < $ThrExt){$DegVec[$DegTmp]+=1;}
+	    }
+	    close(HANDLEtmp);
+	    `rm -f  $outTmp *.dat *.in`;
+	    chdir "..";
 	} # end for($m=$Init;$m<=$Nrnd;$m++)
-	# *** Compute Measures from Summary file
+	#exit; # debug
+
+	# --- Compute Measures from Summary file
 	#print join(" ",$i,$j,$BiomassP[$i][$j],$StdvBioP[$i][$j],$BiomassA[$i][$j],$StdvBioA[$i][$j],'DEBUG0'),"\n";
 	$BiomassP[$i][$j]=$BiomassP[$i][$j]/$Nrnd; $BiomassA[$i][$j]=$BiomassA[$i][$j]/$Nrnd;
 	$StdvBioP[$i][$j]=$StdvBioP[$i][$j]/$Nrnd-$BiomassP[$i][$j]**2; $StdvBioA[$i][$j]=$StdvBioA[$i][$j]/$Nrnd-$BiomassA[$i][$j]**2; 
 	#print join(" ",$i,$j,$BiomassP[$i][$j],$StdvBioP[$i][$j],$BiomassA[$i][$j],$StdvBioA[$i][$j],'DEBUG1'),"\n";
 	$ExtinctAll=$ExtinctP[$i][$j]+$ExtinctA[$i][$j];  # To normalize degrees extinction later
 	$ExtinctP[$i][$j]=$ExtinctP[$i][$j]/$Nrnd; $ExtinctA[$i][$j]=$ExtinctA[$i][$j]/$Nrnd;
+	#print join(" ",$i,$j,$ExtinctP[$i][$j],$ExtinctA[$i][$j],$ExtinctAll,'DEBUG0'),"\n";
+	#exit; # debug
 	$StdvExtP[$i][$j]=$StdvExtP[$i][$j]/$Nrnd-$ExtinctP[$i][$j]**2; if($StdvExtP[$i][$j]<0){$StdvExtP[$i][$j]=0;} # This may happen if there are not extinctions due to numerical precision
 	$StdvExtA[$i][$j]=$StdvExtA[$i][$j]/$Nrnd-$ExtinctA[$i][$j]**2; if($StdvExtA[$i][$j]<0){$StdvExtA[$i][$j]=0;}	
 	$SurviveP[$i][$j]=$SurviveP[$i][$j]/$Nrnd; $SurviveA[$i][$j]=$SurviveA[$i][$j]/$Nrnd;
@@ -525,7 +536,7 @@ for($i=0;$i<=$length1-1;$i++)
 	print HANDLE2 join(" ",$selectValues[$i],$Delta[$j],$BiomassP[$i][$j],$StdvBioP[$i][$j],$BiomassA[$i][$j],$StdvBioA[$i][$j],$ExtinctP[$i][$j],$StdvExtP[$i][$j],$ExtinctA[$i][$j],$StdvExtA[$i][$j],$SurviveP[$i][$j],$StdvSurvP[$i][$j],$SurviveA[$i][$j],$StdvSurvA[$i][$j],$NestOutP[$i][$j],$StdvNestOutP[$i][$j],$NestOutA[$i][$j],$StdvNestOutA[$i][$j],$NestOutT[$i][$j],$StdvNestOutT[$i][$j],$ConnectOut[$i][$j],$StdvConnectOut[$i][$j],$SinglesOut[$i][$j],$StdvSinglesOut[$i][$j],$SinglesExtinct[$i][$j],$StdvSinglesExtinct[$i][$j],$ExcludeP[$i][$j],$StdvExcludeP[$i][$j],$ExcludeA[$i][$j],$StdvExcludeA[$i][$j],$NegAlphaP[$i][$j],$StdvNegAlphaP[$i][$j],$NegAlphaA[$i][$j],$StdvNegAlphaA[$i][$j],$AvAlphaAvP[$i][$j], $StdvAlphaAvP[$i][$j], $AvAlphaAvA[$i][$j], $StdvAlphaAvA[$i][$j], $AvAlphaVarP[$i][$j], $StdvAlphaVarP[$i][$j], $AvAlphaVarA[$i][$j], $StdvAlphaVarA[$i][$j],$entropyA[$i][$j],$StdvEntropyA[$i][$j],$entropyP[$i][$j],$StdvEntropyP[$i][$j]), "\n";
 	for($k=0;$k<=$max;$k++) # Print extincted species as a function of degree
 	{
-	    if($DegVec[$k] != 0){$DegVec[$k]/=$ExtinctAll;}
+	    if($ExtinctAll != 0){$DegVec[$k]/=$ExtinctAll;}
 	    print HANDLE4 join(" ",$selectValues[$i],$Delta[$j],$k,$DegVec[$k],$ExtinctAll), "\n";
 	    $DegVec[$k] = 0; # Initialize for the next set of realizations
 	}
@@ -569,17 +580,8 @@ for($j=0;$j<=$length2-1;$j++)
 	$dExcludeP=($ExcludeP[$i][$j]-$ExcludeP[0][$j])/$Sp; $dExcludeA=($ExcludeA[$i][$j]-$ExcludeA[0][$j])/$Sa;
 	$Err_dExcludeP=sqrt(($StdvExcludeP[$i][$j]+$StdvExcludeP[0][$j])/($Nrnd*$Sp)); $Err_dExcludeA=sqrt(($StdvExcludeA[$i][$j]+$StdvExcludeA[0][$j])/($Nrnd*$Sa));
 
-	$dDiss=($Diss[$i][$j]-$Diss[0][$j]);
-	$Err_dDiss=sqrt(($StdvDiss[$i][$j]+$StdvDiss[0][$j])/$Nrnd);
-	$dAvDiss=($AvDiss[$i][$j]-$AvDiss[0][$j]);
-	$Err_dAvDiss=sqrt(($StdvAvDiss[$i][$j]+$StdvAvDiss[0][$j])/$Nrnd);
-	$dDissRate=($DissRate[$i][$j]-$DissRate[0][$j]);
-	$Err_dDissRate=sqrt(($StdvDissRate[$i][$j]+$StdvDissRate[0][$j])/$Nrnd);
-	$dAvDissRate=($AvDissRate[$i][$j]-$AvDissRate[0][$j]);
-	$Err_dAvDissRate=sqrt(($StdvAvDissRate[$i][$j]+$StdvAvDissRate[0][$j])/$Nrnd);
-
 	
-	print HANDLE3 join(" ",$selectedValues[$i],$Delta[$j],$dBioP,$Err_dBioP,$dBioA,$Err_dBioA,$dSp,$Err_dSp,$dSa,$Err_dSa,$dSpRel,$Err_dSpRel,$dSaRel,$Err_dSaRel,$dSrel,$Err_dSrel,$dNestOutP,$Err_dNestOutP,$dNestOutA,$Err_dNestOutA,$dNestOutT,$Err_dNestOutT,$dConnectOut,$Err_dConnectOut,$dSinglesOut,$Err_dSinglesOut,$dSinglesExtinct,$Err_dSinglesExtinct,$dExcludeP,$Err_dExcludeP,$dExcludeA,$Err_dExcludeA,$dDiss,$Err_dDiss,$dAvDiss,$Err_dAvDiss,$dDissRate,$Err_dDissRate,$dAvDissRate,$Err_dAvDissRate), "\n";
+	print HANDLE3 join(" ",$selectValues[$i],$Delta[$j],$dBioP,$Err_dBioP,$dBioA,$Err_dBioA,$dSp,$Err_dSp,$dSa,$Err_dSa,$dSpRel,$Err_dSpRel,$dSaRel,$Err_dSaRel,$dSrel,$Err_dSrel,$dNestOutP,$Err_dNestOutP,$dNestOutA,$Err_dNestOutA,$dNestOutT,$Err_dNestOutT,$dConnectOut,$Err_dConnectOut,$dSinglesOut,$Err_dSinglesOut,$dSinglesExtinct,$Err_dSinglesExtinct,$dExcludeP,$Err_dExcludeP,$dExcludeA,$Err_dExcludeA), "\n";
     }
 }	
 `rm -rf  dir*`;
