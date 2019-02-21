@@ -3,15 +3,19 @@ Beyond-MeanField.f
 
 ## DESCRIPTION:
 
-This script builds or reads from files a bipartite network and integrates the system of equations. The scripts allows you to build the system either providing metaparameter values (features of the distributions around which random numbers will be generated) or reading the parameters and species abundances from files. You can read some of the parameters/abundances and generate others. You can additionally perturb the growth rates, controlled in the .in file with the Delta parameter. This should be typically a value between 0 and 1 representing the amount of perturbation relative to the growth rates (so 1 represents a perturbation of 100% of the growth rates, namely that the growth rates may randomly become zero). The script also allows you to build a system at a fix point, to perturb its growth rates next, which is the basis of our approach to structural stability (see Pascual-García and Bastolla, _Nat Comm_ 2017). The idea is that you can fix all the parameters and solve the system of equations at a steady state for the growth rates free, and hence you build a feasible system. 
+This script builds or reads from files a bipartite network and integrates the system of equations. The scripts allows you to build the system either providing metaparameter values (features of the distributions around which random numbers will be generated) or reading the parameters and species abundances from files. You can read some of the parameters/abundances and generate others. 
+In addition, the script also allows you to build a system at a fixed point and to perturb its growth rates next, which is the basis of our approach to structural stability (see Pascual-García and Bastolla, _Nat Comm_ 2017). The idea is that you can fix all the parameters and solve the system of equations at a steady state for the growth rates, to obtain a feasible system. The perturbation of the growth rates is controlled by an specific (Delta) parameter, which should be typically a value between 0 and 1 representing the amount of perturbation relative to the growth rates (so 1 represents a perturbation of 100% of the growth rates, namely that the growth rates may randomly become zero). 
 
-The interaction term that we consider between both pools is:
+In the following, we consider label the two pools as plants (P) and animals (A). This can be two pools interacting mutualistically (pollinators and its flowering plants), in a prey-predator way (like plants and herbivores) or competitively, depending on the sign of the interaction matrix between both pools chosen (see below). All the parameters have one parameter for plants and another for animals, being in this way possible to control them independently.
+
+Each pool has a parameter for the growth rates (Alpha), which is positive or negative and that, as we said, can be inferred at a steady state. In addition, it has
+a competition matrix with respect to the members of the own pool. The script can generate internally a mean-field competition matrix which is controlled by two parameters Beta (diagonal terms, intraspecific competition) and Rho (off-diagonal terms, interspecific competition). These coefficients must be positive. Finally, there is an interaction term between both pools including a ratio-dependent functional response. We define this term for plants as:
 
 ```
 F^P_ij = Gamma^P_ij N^P_i N^A_j/[f^P_0 + g^A_j sum_k |Gamma^P_kj| N^P_k + h^P_i sum_l |Gamma^P_il| N^A_l]
 ```
 
-Note the notation followed for g and h, the superindex P (plants) or A (animals) is in correspondence with the dimension of space (plants or animals) in which it is defined.
+and symmetrically for animals, just interchanging the superscripts ```A``` and ```P```. If the Gamma matrices are generated internally, they will be a mean field matrix with parameter given by the user, and the sign will determine the kind of interaction between the pools. In addition, we have two handling times ```h``` and ```g```. Note the notation followed for ```g``` and ```h```, the superindex ```P``` (plants) or ```A``` (animals) is in correspondence with the dimension of space (plants or animals) in which it is defined, and not necessarily with the ecological meaning.
 
 ## INPUT
  
@@ -28,7 +32,7 @@ Note the notation followed for g and h, the superindex P (plants) or A (animals)
      * __hhandlingInA.dat__ --> Saturation term (vector h^A_i of Sa plants): ```h^A_i sum_l |Gamma^A_il| N^P_l]```
      * __ghandlingInP.dat__ --> Saturation term (vector g^P_i of Sp plants): ```g^P_j sum_k |Gamma^A_kj| N^A_k]```
      * __ghandlingInA.dat__ --> Saturation term (vector g^A_i of Sa plants): ```g^A_j sum_k |Gamma^P_kj| N^P_k]```    
-2.  You will also need a file called _Beyond-MeanField.in_ describing if you want to generate or read from file the parameters. To control for this, all the parameters have (at least) three metaparameters. The first metaparameter is called readX, with X the label for the three metaparameters. It will control if the parameter is read from the correspondent file (if it is equal to 1), or if it should be generated internally (=0). Then there are two additional parameters midX and widthX. The role of these parameters is:
+2.  You will also need a file called _Beyond-MeanField.in_ describing if you want to generate or read from file the parameters. To control for this, all the parameters have (at least) three metaparameters. The first metaparameter is called ```readX```, with ```X``` the label for the three metaparameters. It will control if the parameter is read from the correspondent file (if it is equal to 1), or if it should be generated internally (=0). Then there are two additional parameters midX and widthX. The role of these parameters is:
      * If ```readX = 1```, then, each value ```X0``` readed from file will become: ```X=X0*midX*(1+widthX*rnd)```, where ```rnd = [-0.5,0.5]```. You can consider different scenarios:
         * Keep just the readed value: Make ```midX=1``` and ```widthX=0```.
         * Randomize the readed value: Make ```midX=1``` and ```widthX > 0```.
@@ -36,7 +40,7 @@ Note the notation followed for g and h, the superindex P (plants) or A (animals)
         * Rescale and randomize the readed value: Make ```midX neq 0``` and ```widthX > 0```. This scenario and the previous one are useful for instance if you have only the topology of the interactions but you should explore the strengths.
      * If ```readX = 0```, then the script will generate the following values: ```X=midX*(1+widthX*rnd)```, where ```rnd = [-0.5,0.5]```.
 
-* In addition, some metaparameters require some more parameters to be generated. In particular, the competition matrix requires two more values to differentiate between inter and intraspecific competition, and the growth rates have one more parameter to control if it should be estimated at a fixed point. Specifically, the file _Beyond-MeanField.in_ must have the following lines in this order (see folder example1 for an example):
+* In addition, some objects require some more parameters to be generated. In particular, the competition matrix requires two more values to differentiate between inter and intraspecific competition, and the growth rates have one more parameter to control if it should be estimated at a fixed point. Specifically, the file _Beyond-MeanField.in_ must have the following lines in this order (see folder example1 for an example):
      * __readNp__         ! Control parameter for plants abundances, it is equal to 1 if you read Np from file, 0 if it will be generated internally, in which case:
      * __midNp__          ! It will generate the parameter with a distribution of plant densities ```Np=midNp*(1+ widthNp*rnd)``` where ```rnd = [-0.5,0.5]```
      * __widthNp__        ! Note that these two parameters must be given even if ```readNp=1```
