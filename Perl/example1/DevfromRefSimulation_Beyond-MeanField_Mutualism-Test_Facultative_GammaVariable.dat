@@ -1,0 +1,43 @@
+# >> Multiple Shuttle for Beyond-MeanField.f <<
+# >> Biomasses and number of extincted species for different parameter values
+# >> Running at date: 14:53:16, Thu Feb 21, 2019
+# >> Zurich, Theoretical Biology (ETH), apascualgarcia.github.io
+# >> COMMON PARAMETERS:
+# Population densities plants, readed from file?(=1): 0; midNp: 1; widthNp: 0.15
+# Population densities animals, readed from file?(=1): 0; midNa: 1; widthNa: 0.15
+# Growth rates plants, estimated at fixed point?(=1): 1; readed from file?(=1): 0; midNp: 1; widthNp: 0.15
+# Growth rates animals, estimated at fixed point?(=1): 1; readed from file?(=1): 0; midAlphaA: 1; widthAlphaA: 0.15
+# Beta parameter plants, readed from file?(=1): 0; midBetaP: 1; widthBetaP: 0.15
+# Beta parameter animals, readed from file?(=1): 0; midBetaA: 1; widthBetaA: 0.15
+# Rho parameter plants, readed from file?(=1): 0; midRhoP: 0.05; widthRhoP: 0.15
+# Rho parameter animals, readed from file?(=1): 0; midRhoA: 0.05; widthRhoA: 0.15
+# Gamma parameter plants, readed from file?(=1): 0; midGammaP: 0.05; widthGammaP: 0.15
+# Gamma parameter animals, readed from file?(=1): 0; midGammaA: 0.05; widthGammaA: 0.15
+# H parameter plants, readed from file?(=1): 0; midHp: 0.1; widthHp: 0.15
+# H parameter animals, readed from file?(=1): 0; midHa: 0.1; widthHa: 0.15
+# G parameter plants, readed from file?(=1): 0; midGp: 0; widthGp: 0
+# G parameter animals, readed from file?(=1): 0; midGa: 0; widthGa: 0
+# Species number (Plants): 50
+# Species number (Animals): 50
+# Path for the output summary matrix: Summary_Beyond-MeanField.tmp
+# Number of realizations for each set of parameters: 500
+# Values for the Delta parameter: 0.1; 0.25; 0.5; 0.75
+# Values for the midGamma parameter: 0.02; 0.04; 0.06
+# Input nestedness for plants: 1.0000000000000000
+# Input nestedness for animals: 1.0000000000000000
+# Input total nestedness: 1.0000000000000000
+# Input connectance: 1.00000000
+# Average degree for plants: 50.000000000000000
+# Variance degree for plants: 0.0000000000000000
+# Average degree for animals: 50.000000000000000
+# Variance degree for animals: 0.0000000000000000
+# Number of starting singletons: 0.00000000
+#1midGamma 2Delta, 3dBioP, 4Err_dBioP, 5dBioA, 6Err_dBioA, 7dSp, 8Err_dSp, 9dSa, 10Err_dSa, 11dSpRel, 12Err_dSpRel, 13dSaRel, 14Err_dSaRel, 15dSrel, 16Err_dSrel, 17dNestOutP, 18Err_dNestOutP, 19dNestOutA, 20Err_dNestOutA, 21dNestOutT, 22Err_dNestOutT, 23dConnectOut, 24Err_dConnectOut, 25dSinglesOut, 26Err_dSinglesOut, 27dSinglesExtinct, 28Err_dSinglesExtinct, 29dExcludeP, 30Err_dExcludeP, 31dExcludeA, 32Err_dExcludeA
+0.04 0.1 0.0498041642896467 0.0274844828631186 -0.0365992063655227 0.026154773277596 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0.06 0.1 0.0288256268268796 0.0256286921042167 -0.0192604963997596 0.0255525027496505 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0.04 0.25 -0.137721700499242 0.0505991883846073 -0.0385707310841212 0.0511448454910905 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0.06 0.25 -0.0389994079218781 0.0465700554100241 0.074149102016861 0.0465054961896629 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0.04 0.5 -0.365968856190399 0.102539832121119 -0.305131172916404 0.10165546183259 6.292 0.100162268344921 5.796 0.0911534969159165 0.144272218655416 0.00235411488438535 0.131226227132766 0.0020885428777173 0.137707906128959 0.00221980435187617 0 0 0 0 0 0 -0.00306974987999831 5.39815733600138e-05 0 0 0 0 0 0 0 0
+0.06 0.5 -0.403734176539764 0.0924539163932121 -0.283978055601061 0.0916140369153753 6.388 0.0986453850922586 5.832 0.0907719780549042 0.146473447674952 0.0022618862948789 0.13204129686651 0.00205515255512824 0.139211665527455 0.00215786469750698 0 0 0 0 0 0 -0.00308446069999868 5.38741138025192e-05 0 0 0 0 0 0 0 0
+0.04 0.75 -2.1206879626388 0.146934753607025 -1.98009422901167 0.144135526404124 6.014 0.144370717252495 6.172 0.145994520445118 0.165183476159086 0.00440354464237958 0.167208495882098 0.00441148940643674 0.16620294599018 0.00440750580469785 0 0 0 0 0 0 -0.00607312420000072 0.000130909427939821 0 0 0 0 0 0 0 0
+0.06 0.75 -2.7537266453762 0.125018361815833 -2.56593242372182 0.127435099140184 13.572 0.107490799606292 13.088 0.105681180916945 0.372775214238629 0.00301650026424186 0.35457303857824 0.00286305756710405 0.363611565739225 0.00293846902649694 0 0 0 0 0 0 -0.00994126784000016 0.000112979864028534 0 0 0 0 0 0 0 0
