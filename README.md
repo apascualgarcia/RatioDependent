@@ -3,9 +3,9 @@ RatioDependent Project
 
 This project consists of two main scripts. A Fortran code to integrate population dynamics ```Beyond-MeanField.f``` and a Perl
 wrapper of this script to run it massively using multiple cores ```Shuttle4_Beyond-MeanField-Adaptive_ForkManager.pl```. Both
-scripts are mainly designed to compute the structural stability of the system, and hence the former allows for the construction
-of the system at a feasible state and its perturbation of the growth rates by a certain amplitude, and the latter allows
-for the exploration of multiple amplitude values of the pertirbation. Both scripts are described in the following.
+scripts are mainly designed to compute the structural stability of the system. The former allows for the construction
+of the system at a feasible state and its perturbation of the growth rates by a certain amplitude. And the latter allows
+for the exploration of multiple amplitude values of the perturbations through multiple realizations of the noise. Both scripts are described in the following.
 
 Beyond-MeanField.f
 ==================
