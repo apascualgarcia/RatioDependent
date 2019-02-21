@@ -151,19 +151,22 @@ and symmetrically for animals, just interchanging the superscripts ```A``` and `
          * __VarDegreeInP__ 	#   Variance    
          * __AvDegreeInA__  	#    Average of the degree of animal species 
          * __VarDegreeInA__ 	#   Variance     
-         * __Seed__	#     Starting seed (control it changes along realizations)     
+         * __Seed__	#     Starting seed (control it changes across realizations)     
          * __TrueDiversityP__ 	#    Effective biodiversity of plants     
          * __TrueDiversityA__ 	#    Of animals
      
 ## COMPILATION:
-  Simply run in the directory where the .f files are located. You will need a gfortran compiler, but no further requirements are
+  
+Simply run in the directory where the .f files are located. You will need a gfortran compiler, but no further requirements are
 expected since all the libraries are included in the code file.
 
   ```$ make    ```
 
   Compilation has been tested in x86-64 procs under Linux.
+
 ## EXECUTION:
-    Once the files are compiled, just execute the file, ensuring that the necessary files are in the same folder. If the output files already exist the script will not overwrite them and it aborts the execution.
+
+Once the files are compiled, just execute the file, ensuring that the necessary files are in the same folder. If the output files already exist the script will not overwrite them and it aborts the execution.
 
 ## EXAMPLE:
 
@@ -204,8 +207,8 @@ hence it allows for the exploration of a range of Delta parameters (i.e. perturb
 it will run for each Delta value N randomizations, and it will return the mean and standard deviation of all
 the quantities included in the Summary file of Beyond-MeanField.f. In addition, it allows to explore
 different values of one parameter X of your choice among Beta, Rho, Gamma, H and G parameters. Therefore, the
-script will run N times a combination of X, Delta parameters (keeping all the remaining parameters fixed, except
-for any eventual randomization you may want to include as in the Fortran code), and
+script will run N times a combination of (X, Delta) parameters (keeping all the remaining parameters fixed, except
+for any eventual randomization you may want to include each time you run a realization), and
 will return a list with means and stdv for each combination. 
 
 ## REQUIREMENTS
@@ -228,8 +231,8 @@ To use the script you should first edit in the code a list of parameters. These 
 
 * The parameters needed to run Beyond-MeanField.f, i.e. the parameters contained in Beyond-MeanField.in. You should fix there the different choices, if the script should read or generate parameters, etc. Since the idea behind this script is to explore the structural stability, the parameter fixedPoint should be always equal to one, in which case the system will be always prepared at a feasible starting point.
 * The range of Delta values to simulate.
-* Which is the additional variable X you want to explore and the range of values.
-* The number of randomizations for each pair X, Delta values.
+* Select the additional variable X you want to explore and the range of values (select a single value for any of the possible choices if you are not interested in exploring any metaparameter)
+* The number of randomizations for each pair (X, Delta) values.
 * The number of processors to use (variable Nproc). If it is not fixed to certain value it will get the maximum number available in the computer.
 * Labels for the output files.
 
