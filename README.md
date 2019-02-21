@@ -238,7 +238,7 @@ In folder Perl/example1 you will find the output of a mean field mutualistic sim
 
 ## PERFORMANCE
 
-For the moment this wrappper simply runs multiple times the Fortran code in independent directories and then retrieves and post-process all the information, what implies reading and writing files and increases the time of computation. In the (I hope near) future I will wrap it into R to avoid read/write operations, but I'm not familiar with fork management in R yet. At this moment, the example presented at Perl/example1 consists of 6000 population dynamics simulations and it takes 5 minutes running in a 12 core AMD computer with two threads per core, and it required around 4GB of memory.
+For the moment this wrappper simply runs multiple times the Fortran code in independent directories and then retrieves and post-process all the information, what implies reading and writing files and increases the time of computation. In the (I hope near) future I will wrap it into R to avoid read/write operations, but I'm not familiar with fork management in R yet. At this moment, the example presented at Perl/example1 consists of 6000 population dynamics simulations and it takes 5 minutes running in a 12 core AMD computer with two threads per core, and it required around 4GB of memory. 
 
 
 
