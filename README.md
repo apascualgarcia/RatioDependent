@@ -89,7 +89,7 @@ Note the notation followed for g and h, the superindex P (plants) or A (animals)
 # OUTPUT
 
 * The script will generate the following files. Note that, except for those related with the abundances that should always change any input file provided will bring as output file the same input file unless you rescale or randomize its values with the parameters midX and widthX. 
-     * __plantsOut.dat_	# Plant abundances before the simulation starts, unless you simply read from file will differ from plantsIn.dat, if you randomize the values or generate them from scratch
+     * __plantsOut.dat__	# Plant abundances before the simulation starts, unless you simply read from file will differ from plantsIn.dat, if you randomize the values or generate them from scratch
      * __animalsOut.dat__ 	# Same for animals
      * __betaOutP.dat__ 	# The following files are in correspondence with the inputs, unless you generate
      * __betaOutA.dat__ 	# new parameters, you will get the same matrix
@@ -105,7 +105,7 @@ Note the notation followed for g and h, the superindex P (plants) or A (animals)
      * __animalsOut-Paths.dat__ 	# For the animals
      * __plantsOut-Final.dat__ # The input an output abundances, together with the alpha values and if the species got extincted. 
      * __animalsOut-Final.dat__ # 
-     * __Summary_\$label.dat__ 	# A file providing the following information:
+     * __Summary\_$label.dat__ 	# A file providing the following information:
          * The parameters you used to run the simulation (one per row), and the following extra information:
          * __BiomassP__  	#  total biomass for plants  
          * __BiomassA__   	#  total biomass of animals    
@@ -230,9 +230,9 @@ To explore a particular region of the Delta parameter (for instance the one in w
 
 The script will return three files:
 
-* __Summary-Ensemble_Beyond-MeanField_\$labels__ This file returns, for each pair of metaparameters X and perturbation Delta, the mean and standard deviation across the N randomizations of all the output variables of the FORTRAN script.
-* __ProbExtinctDegrees_Beyond-MeanField_\$labels__ This file quantifies, for each pair of metaparameters X and perturbation Delta, the probability that an extinction occurs for a species with starting degree d, where the degree is the number of interactions in the interaction matrix Gamma. Each row contains, the two metaparameters, the degree d (from 1 to the number of species) and the probability P(extinction | d).
-* __DevfromRefSimulation_Beyond-MeanField_\$labels__ Similar file than the _Summary_ file but in this case it computes the difference between the means of the simulations for the first pair of parameters X and Delta, and the remaining ones. The idea behind this file is to test the increase (decrease) in the different values with respect to some reference simulation, typically the ones in which the metaparameter X is equal to zero, in order to test the effect of including the metaparameter in the model. For instance, if Gamma is a mutualistic matrix, starting with midGamma=0 we will simulate two purely competitive systems, and we can test the difference between having pure competition and mutialism.
+* __Summary-Ensemble\_Beyond-MeanField\_$labels__ This file returns, for each pair of metaparameters X and perturbation Delta, the mean and standard deviation across the N randomizations of all the output variables of the FORTRAN script.
+* __ProbExtinctDegrees\_Beyond-MeanField\_$labels__ This file quantifies, for each pair of metaparameters X and perturbation Delta, the probability that an extinction occurs for a species with starting degree d, where the degree is the number of interactions in the interaction matrix Gamma. Each row contains, the two metaparameters, the degree d (from 1 to the number of species) and the probability P(extinction | d).
+* __DevfromRefSimulation\_Beyond-MeanField\_$labels__ Similar file than the _Summary_ file but in this case it computes the difference between the means of the simulations for the first pair of parameters X and Delta, and the remaining ones. The idea behind this file is to test the increase (decrease) in the different values with respect to some reference simulation, typically the ones in which the metaparameter X is equal to zero, in order to test the effect of including the metaparameter in the model. For instance, if Gamma is a mutualistic matrix, starting with midGamma=0 we will simulate two purely competitive systems, and we can test the difference between having pure competition and mutialism.
 
 In folder Perl/example1 you will find the output of a mean field mutualistic simulation with four values of Delta and three values of midGamma
 
