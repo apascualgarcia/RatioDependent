@@ -1,18 +1,20 @@
 RatioDependent Project
 ======================
 
-This project consists of two main scripts. A Fortran code to integrate population dynamics ```Beyond-MeanField.f``` and a Perl
+This project consists of two main scripts. A Fortran code to integrate population dynamics, the proyect ```Beyond-MeanField```, and a Perl
 wrapper of this script to run it massively using multiple cores ```Shuttle4_Beyond-MeanField-Adaptive_ForkManager.pl```. Both
 scripts are mainly designed to compute the structural stability of the system. The former allows for the construction
 of the system at a feasible state and its perturbation of the growth rates by a certain amplitude. And the latter allows
 for the exploration of multiple amplitude values of the perturbations through multiple realizations of the noise. Both scripts are described in the following.
 
-Beyond-MeanField.f
-==================
+Beyond-MeanField (FORTRAN)
+==========================
 
 ## DESCRIPTION:
 
-This script builds or reads from files a bipartite network and integrates the system of equations. The scripts allows you to build the system either providing metaparameter values (features of the distributions around which random numbers will be generated) or reading the parameters and species abundances from files. You can read some of the parameters/abundances and generate others. 
+This script builds or reads from files a bipartite network and integrates the system of equations. It is coded in three different files: ```1Beyond-MeanField_2-3.f```, ```2Parameters.f``` and ```3Integration_Adaptive.f```. You will find some description of the contents along these lines and a tree with the different subroutines describing where are located below. It is provided an executable file ```BeyondMeanField_gfortran```, but compilation is system-dependent, so it is advisable to recompile it even if you share the features of the compilation described below.
+
+ The scripts allows you to build the system either providing metaparameter values (features of the distributions around which random numbers will be generated) or reading the parameters and species abundances from files. You can read some of the parameters/abundances and generate others. 
 In addition, the script also allows you to build a system at a fixed point and to perturb its growth rates next, which is the basis of our approach to structural stability (see Pascual-García and Bastolla, _Nat Comm_ 2017). The idea is that you can fix all the parameters and solve the system of equations at a steady state for the growth rates (to obtain a feasible system) and then perturb the growth rates and integrate the ODEs. The perturbation of the growth rates is controlled by a specific (Delta) parameter, which should be typically a value between 0 and 1 representing the amount of perturbation relative to the growth rates (so 1 represents a perturbation of 100% of the growth rates, namely that the growth rates may randomly become zero). 
 
 In the following, we label the two pools as plants (P) and animals (A). These can be two pools interacting mutualistically (pollinators and its flowering plants), in a prey-predator way (like plants and herbivores) or even competitively, depending on the sign of the interaction matrices between both pools chosen (see below). All the parameters have one parameter for plants and another for animals, being in this way possible to control them independently.
@@ -174,11 +176,11 @@ At the folder _example1_ there is the input and output of a mutualistic system w
 to mean-field matrices, and growth rates estimated at a fixed point.
 
 ## TREE of the code structure 
-From root (Main):
+From root (Main) we show from top o down the sequential order in which the code is executed and how the subroutines are nested one within the other. Subroutines with less "dots" are closer to the leafs and are called by the immediately upper subroutine containing one dot more.
 
      ..... Read_Parameters .... Header                 ... When  .. idate                                   ##(At 1Beyond-MeanField_2-3.f)
                                                            
-                                                            .. itime
+                                                                 .. itime
                         .... Warning
 
      ..... Pseudo_Main     .... Read_Generate_Inputs                                                        ##(At 2Parameters.f)
