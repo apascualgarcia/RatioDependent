@@ -240,9 +240,11 @@ To use the script you should first edit in the code a list of parameters. These 
 
 Then, you should run the script in the directory where the binary file BeyondMeanField_gfortran and your .in files (if needed) are located:
 
-```$ Shuttle4_Beyond-MeanField-Adaptive_ForkManager.pl```
+```
+$ chmod 755 Shuttle4_Beyond-MeanField-Adaptive_ForkManager.pl
+$ ./Shuttle4_Beyond-MeanField-Adaptive_ForkManager.pl
+```
 
-To explore a particular region of the Delta parameter (for instance the one in which the probability of observing at least one extinction is 0.5, our original definition) you can explore a wide range of Delta with few randomizations and then narrow your search around the region where you observe few extinctions, further increasing the number of randomizations.
 
 ## OUTPUT
 
@@ -252,7 +254,32 @@ The script will return three files:
 * __ProbExtinctDegrees\_Beyond-MeanField\_$labels__ This file quantifies, for each pair of metaparameters X and perturbation Delta, the probability that an extinction occurs for a species with starting degree d, where the degree is the number of interactions in the interaction matrix Gamma. Each row contains, the two metaparameters, the degree d (from 1 to the number of species) and the probability P(extinction | d).
 * __DevfromRefSimulation\_Beyond-MeanField\_$labels__ Similar file than the _Summary_ file but in this case it computes the difference between the means of the simulations for the first pair of parameters X and Delta, and the remaining ones. The idea behind this file is to test the increase (decrease) in the different values with respect to some reference simulation, typically the ones in which the metaparameter X is equal to zero, in order to test the effect of including the metaparameter in the model. For instance, if Gamma is a mutualistic matrix, starting with midGamma=0 we will simulate two purely competitive systems, and we can test the difference between having pure competition and mutialism.
 
-In folder Perl/example1 you will find the output of a mean field mutualistic simulation with four values of Delta and three values of midGamma
+In folder Perl/example1 you will find the output of a mean field mutualistic simulation with four values of Delta and three values of midGamma.
+
+_Example_ Critical perturbation:_ To compute the critical perturbation of a system for some metaparameters given, you should fix the values of the metaparameters
+and explore a particular region of the Delta parameter. If you do not have a clue about the specific region to explore, you may want to start exploring a a wide range of Delta with few randomizations and then narrow your search around the region where you observe few extinctions, further increasing the number of randomizations.
+
+The relevant file for this exploration is the file  __Summary-Ensemble\_Beyond-MeanField\_$labels__. In particular, column 1 returns the value of the metaparameter you are dynamically modifying, column 2 the value of Delta, column 7 (9) the mean number of extinctions for the pool P (A) of organisms, and column 8 (10) the standard error for the pool P (A). For instance, considering these columns in the example located at folder ```example1``` within the folder ```Perl```, these columns read:
+
+```
+#1midGamma 2Delta, 7ExtinctP, 8StdvExtP, 9ExtinctA, 10StdvExtA,
+0.02 0.1 0 0 0 0
+0.02 0.25 0 0 0 0
+0.02 0.5 6.39 4.86 5.83 4.12
+0.02 0.75 13.59 5.76 13.09 5.58
+0.04 0.1 0 0 0 0
+0.04 0.25 0 0 0 0
+0.04 0.5 0.096 0.15 0.036 0.035
+0.04 0.75 7.578 4.66 6.91 5.073
+0.06 0.1 0 0 0 0
+0.06 0.25 0 0 0 0
+0.06 0.5 0 0 0 0
+0.06 0.75 0.02 0.020 0 0
+```
+
+which suggests that, for the metaparameter Gamma=0.02 the Delta critical should be explored for Delta<0.5, for Gamma=0.04, between Delta=0.5 and Delta=0.75, and
+for Gamma=0.06, the values should be Delta>0.75.
+
 
 ## PERFORMANCE
 
